@@ -4,7 +4,7 @@ endif()
 
 set(CONVERTER_OUTPUT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Output Directory for converter")
 # Make an alternative CONVERTER_OUTPUT which uses backslashes
-string(REGEX REPLACE "/" "\\\\" CONVERTER_PACKAGES_OUTPUT_BACKSLASHES ${ROOT_BINARY_DIR}) 
+string(REGEX REPLACE "/" "\\\\" CONVERTER_PACKAGES_OUTPUT_BACKSLASHES ${CMAKE_BINARY_DIR}) 
 
 project(converter VERSION 1.0.0 DESCRIPTION "Converter for internal filetype" LANGUAGES CSharp)
 
