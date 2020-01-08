@@ -1,8 +1,5 @@
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set (CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_BINARY_DIR}" CACHE PATH "default install path" FORCE )
-endif()
+set(CONVERTER_OUTPUT ${CMAKE_CURRENT_BINARY_DIR} CACHE PATH "Output Directory for converter")
 
-set(CONVERTER_OUTPUT ${CMAKE_INSTALL_PREFIX} CACHE PATH "Output Directory for converter")
 # Make an alternative CONVERTER_OUTPUT which uses backslashes
 string(REGEX REPLACE "/" "\\\\" CONVERTER_PACKAGES_OUTPUT_BACKSLASHES ${CMAKE_BINARY_DIR}) 
 
