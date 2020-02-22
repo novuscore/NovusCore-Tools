@@ -27,6 +27,8 @@ namespace Converter
             string dataDirectory = args[0];
             string outputDirectory = args[1];
 
+            Directory.CreateDirectory(outputDirectory);
+
             Stopwatch totalTime = Stopwatch.StartNew();
 
             // Create all converters

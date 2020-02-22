@@ -55,6 +55,9 @@ namespace Converter.Converters
             string assetPath = GetAssetPath(pythonPath);
             materialStreamProvider.SetAssetPath(assetPath);
 
+            outputDirectory = Path.Combine(outputDirectory, "models");
+            Directory.CreateDirectory(outputDirectory);
+
             using (FileStream assetStream = new FileStream(assetPath, FileMode.Open))
             {
                 objLoader = objLoaderFactory.Create(materialStreamProvider);
