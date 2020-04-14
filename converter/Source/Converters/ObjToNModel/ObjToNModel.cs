@@ -78,7 +78,7 @@ namespace Converter.Converters
                 List<Vec2> vertexTexCoords = new List<Vec2>();
                 foreach (Texture texture in result.Textures)
                 {
-                    Vec2 texCoord = new Vec2(texture.X, 1-texture.Y);
+                    Vec2 texCoord = new Vec2(texture.X, texture.Y);
                     vertexTexCoords.Add(texCoord);
                 }
 
