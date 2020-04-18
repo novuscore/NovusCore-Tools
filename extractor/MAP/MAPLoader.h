@@ -27,52 +27,58 @@
 #include <sstream>
 #include "ADT.h"
 #include "../MPQ/MPQHandler.h"
+#include "../Utils/ServiceLocator.h"
 
 namespace MapLoader
 {
-void LoadMaps(MPQHandler& handler, std::vector<std::string> adtLocationOutput)
+void LoadMaps(std::vector<std::string> adtLocationOutput)
 {
     NC_LOG_MESSAGE("Extracting ADTs...");
-    std::filesystem::path basePath(std::filesystem::current_path().string() + "/NovusExtractor");
-    std::filesystem::path mapPath(basePath.string() + "/maps");
-    if (!std::filesystem::exists(mapPath))
-    {
-        std::filesystem::create_directory(mapPath);
-    }
+    std::shared_ptr<MPQHandler> handler = ServiceLocator::GetMPQHandler();
+    std::filesystem::path outputPath = ServiceLocator::GetMapFolderPath();
 
-    MPQFile file;
+    MPQFile* file = nullptr;
     for (std::string adtName : adtLocationOutput)
     {
         bool createAdtDirectory = true;
-        std::filesystem::path adtPath(basePath.string() + "/maps/" + adtName);
+        std::filesystem::path adtPath = outputPath.string() + "/" + adtName;
         if (std::filesystem::exists(adtPath))
         {
+            // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
             createAdtDirectory = false;
         }
+
+        std::string fileName = "";
+        std::stringstream fileNameStream;
+        std::stringstream filePathStream;
 
         for (u32 x = 0; x < 64; x++)
         {
             for (u32 y = 0; y < 64; y++)
             {
                 // We could read the WDL file here to get the ADT list
+                fileNameStream.clear();
+                fileNameStream.str("");
 
-                std::stringstream fileNameStream;
-                std::stringstream filePathStream;
+                filePathStream.clear();
+                filePathStream.str("");
+
                 fileNameStream << adtName << "_" << x << "_" << y;
-                std::string fileName = fileNameStream.str();
-
+                fileName = fileNameStream.str();
                 filePathStream << "world\\maps\\" << adtName << "\\" << fileName << ".adt";
-                if (handler.GetFile(filePathStream.str(), file))
-                {
-                    if (createAdtDirectory)
-                    {
-                        std::filesystem::create_directory(adtPath);
-                        createAdtDirectory = false;
-                    }
 
-                    ADT mapAdt(file, fileName + ".nmap", adtPath.string());
-                    mapAdt.Convert();
+                std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
+                if (!file)
+                    continue;
+
+                if (createAdtDirectory)
+                {
+                    std::filesystem::create_directory(adtPath);
+                    createAdtDirectory = false;
                 }
+
+                ADT mapAdt(file, fileName + ".nmap", adtPath.string());
+                mapAdt.Convert();
             }
         }
     }

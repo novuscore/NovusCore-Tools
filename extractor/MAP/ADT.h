@@ -23,8 +23,8 @@
 */
 #pragma once
 #include <NovusTypes.h>
+#include <Utils/ByteBuffer.h>
 #include "ADTStructs.h"
-#include "../ByteBuffer.h"
 #include "../MPQ/MPQFile.h"
 
 #define NOVUSMAP_TOKEN 1313685840
@@ -82,7 +82,7 @@ struct NovusAdtHeader
 class ADT
 {
 public:
-    ADT(MPQFile& file, std::string fileName, std::string filePath);
+    ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath);
     void Convert();
     u8 GetLiquidIdFromType(u16 type);
 
@@ -100,7 +100,7 @@ private:
     i16 heightBoxMax[3][3];
     i16 heightBoxMin[3][3];
 
-    MPQFile& _file;
+    std::shared_ptr<MPQFile> _file;
     std::string _fileName;
     std::string _filePath;
 };

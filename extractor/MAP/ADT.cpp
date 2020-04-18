@@ -1,7 +1,7 @@
 #include "ADT.h"
 #include <fstream>
 
-ADT::ADT(MPQFile& file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
+ADT::ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
 {
     memset(areaIds, 0, sizeof(areaIds));
     memset(heightMap, 0, sizeof(heightMap));
@@ -9,13 +9,13 @@ ADT::ADT(MPQFile& file, std::string fileName, std::string filePath) : _file(file
 
 void ADT::Convert()
 {
-    mver.Read(_file.Buffer);
+    mver.Read(_file->buffer);
     assert(mver.token == NOVUSMAP_MVER_TOKEN && mver.version == 18);
 
-    mhdr.Read(_file.Buffer);
+    mhdr.Read(_file->buffer);
     assert(mhdr.token == NOVUSMAP_MHDR_TOKEN);
 
-    if (!mcin.Read(_file.Buffer, mhdr.offsetMcin + 0x14))
+    if (!mcin.Read(_file->buffer, mhdr.offsetMcin + 0x14))
     {
         return;
     }
@@ -23,7 +23,7 @@ void ADT::Convert()
     bool hasWater = false;
     if (mhdr.offsetMh2o)
     {
-        if (mh2o.Read(_file.Buffer, mhdr.offsetMh2o + 0x14))
+        if (mh2o.Read(_file->buffer, mhdr.offsetMh2o + 0x14))
         {
             hasWater = true;
         }
@@ -36,7 +36,7 @@ void ADT::Convert()
     bool hasHeightBox = false;
     if (mhdr.flags & 1)
     {
-        if (!mfbo.Read(_file.Buffer, mhdr.offsetMfbo + 0x14))
+        if (!mfbo.Read(_file->buffer, mhdr.offsetMfbo + 0x14))
         {
             hasHeightBox = true;
         }
@@ -57,7 +57,7 @@ void ADT::Convert()
         u32 x = i % 16;
 
         MCNK mcnk;
-        if (mcnk.Read(_file.Buffer, mcin.chunks[y][x]))
+        if (mcnk.Read(_file->buffer, mcin.chunks[y][x]))
         {
             /* Handle AreaId */
             areaIds[y][x] = mcnk.areaId;
@@ -75,7 +75,7 @@ void ADT::Convert()
 
             /* Handle Heightmap */
             MCVT mcvt;
-            if (mcvt.Read(_file.Buffer, mcnk.offsetMcvt + mcin.chunks[y][x]))
+            if (mcvt.Read(_file->buffer, mcnk.offsetMcvt + mcin.chunks[y][x]))
             {
                 for (u32 j = 0; j < 145; j++)
                 {

@@ -8,10 +8,10 @@ DBCReader* DBCReader::_reader;
 	3 = Invalid data / string size read
 */
 
-int DBCReader::Load(ByteBuffer& buffer)
+int DBCReader::Load(std::shared_ptr<ByteBuffer> buffer)
 {
     u32 header = 0;
-    buffer.Read<u32>(header);
+    buffer->GetU32(header);
 
     // Check for WDBC header
     if (header != NOVUSDBC_WDBC_TOKEN)
@@ -19,10 +19,10 @@ int DBCReader::Load(ByteBuffer& buffer)
 
     try
     {
-        buffer.Read<u32>(_rowCount);
-        buffer.Read<u32>(_fieldCount);
-        buffer.Read<u32>(_rowSize);
-        buffer.Read<u32>(_stringSize);
+        buffer->GetU32(_rowCount);
+        buffer->GetU32(_fieldCount);
+        buffer->GetU32(_rowSize);
+        buffer->GetU32(_stringSize);
     }
     catch (std::exception)
     {
@@ -37,7 +37,7 @@ int DBCReader::Load(ByteBuffer& buffer)
     if (!_data || !_stringTable)
         return 3;
 
-    buffer.Read(_data, dataSize);
+    buffer->GetBytes(_data, dataSize);
     return 0;
 }
 

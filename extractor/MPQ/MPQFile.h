@@ -24,19 +24,21 @@
 #pragma once
 
 #include <NovusTypes.h>
-#include "../ByteBuffer.h"
+#include <Utils/ByteBuffer.h>
 
 class MPQFile
 {
 public:
-    MPQFile() : Buffer() {}
-    MPQFile(std::string name) : Name(name), Buffer() {}
+    MPQFile() : buffer(nullptr) {}
+    MPQFile(std::string inName) : name(inName), buffer(nullptr) {}
+    MPQFile(std::string inName, i64 fileSize) : name(inName), buffer(std::make_shared<ByteBuffer>(nullptr, fileSize)) {}
     MPQFile(const MPQFile& file)
     {
-        Name = file.Name;
-        Buffer = file.Buffer;
+        name = file.name;
+        buffer = file.buffer;
     }
 
-    std::string Name = "";
-    ByteBuffer Buffer;
+
+    std::string name = "";
+    std::shared_ptr<ByteBuffer> buffer;
 };

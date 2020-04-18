@@ -24,7 +24,7 @@
 #pragma once
 
 #include <NovusTypes.h>
-#include "../ByteBuffer.h"
+#include <Utils/ByteBuffer.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
@@ -43,7 +43,7 @@ public:
         }
     }
 
-    int Load(ByteBuffer& buffer);
+    int Load(std::shared_ptr<ByteBuffer> buffer);
 
     class DBCRow
     {

@@ -102,10 +102,8 @@ public:
 
         return counter != 0;
     }
-    bool GetFile(std::string name, MPQFile& output)
+    std::shared_ptr<MPQFile> GetFile(std::string name)
     {
-        bool fileFound = false;
-
         for (MPQArchive archive : Archives)
         {
             u32 fileNumber = 0;
@@ -116,17 +114,14 @@ public:
             if (!archive.GetFileSize_Unpacked(fileNumber, fileSize) || fileSize <= 1)
                 continue;
 
-            MPQFile file(name);
-            file.Buffer.Resize(fileSize);
-
-            if (!archive.ReadFile(fileNumber, file.Buffer.data(), fileSize))
+            std::shared_ptr<MPQFile> file = std::make_shared<MPQFile>(name, fileSize);
+            if (!archive.ReadFile(fileNumber, file->buffer->GetDataPointer(), fileSize))
                 continue;
 
-            output = file;
-            fileFound = true;
+            return file;
         }
 
-        return fileFound;
+        return nullptr;
     }
 
     void CloseAll()
