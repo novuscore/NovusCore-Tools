@@ -35,7 +35,7 @@
 #define NOVUSMAP_MHDR_TOKEN 1296581714
 #define NOVUSMAP_MCIN_TOKEN 1296255310
 #define NOVUSMAP_MCNK_TOKEN 1296256587
-#define NOVUSMAP_MFBO_TOKEN 1296577103
+#define NOVUSMAP_MFBO_TOKEN 1296450127 
 #define NOVUSMAP_MH2O_TOKEN 1296577103
 #define NOVUSMAP_MCVT_TOKEN 1296258644
 
@@ -67,41 +67,14 @@ struct MVER
     u32 token;
     u32 size;
     u32 version;
-
-    void Read(std::shared_ptr<ByteBuffer> buffer)
-    {
-        buffer->GetU32(token);
-        buffer->GetU32(size);
-        buffer->GetU32(version);
-    }
 };
 
 struct MCVT
 {
-    MCVT() : token(0), size(0), heightMap() {}
+    MCVT() : token(0), size(0) {}
 
     u32 token;
     u32 size;
-    f32 heightMap[(ADT_CELL_SIZE + 1) * (ADT_CELL_SIZE + 1) + ADT_CELL_SIZE * ADT_CELL_SIZE];
-
-    bool Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-    {
-        buffer->Get<u32>(token, offset);
-
-        if (token == NOVUSMAP_MCVT_TOKEN)
-        {
-            buffer->Get<u32>(size, offset + 0x4);
-
-            for (u32 i = 0; i < 145; i++)
-            {
-                 buffer->Get<f32>(heightMap[i], offset + 0x8 + (i * 4));
-            }
-
-            return true;
-        }
-
-        return false;
-    }
 };
 
 struct MCLQ
@@ -134,7 +107,7 @@ struct MCNK
 {
     MCNK() : token(0), size(0), flags(0), ix(0), iy(0), layers(0), doodadRefs(0), offsetMcvt(0), offsetMcnr(0), offsetMcly(0),
              offsetMcrf(0), offsetMcal(0), sizeMcal(0), offsetMcsh(0), sizeMcsh(0), areaId(0), mapObjectReferences(0), holes(0),
-             s(), predTex(0), effectDoodad(0), offsetMcse(0), soundEmitters(0), offsetMclq(0), sizeMclq(0), zPos(0), xPos(0), yPos(0),
+             lowQualityTextureMap(), predTex(0), effectDoodad(0), offsetMcse(0), soundEmitters(0), offsetMclq(0), sizeMclq(0), zPos(0), xPos(0), yPos(0),
              offsetMccv(0), props(0), effectId(0) {}
 
     u32 token;
@@ -155,7 +128,7 @@ struct MCNK
     u32 areaId;
     u32 mapObjectReferences;
     u32 holes;
-    u8 s[16];
+    u8 lowQualityTextureMap[16];
     u32 predTex;
     u32 effectDoodad;
     u32 offsetMcse;
@@ -168,135 +141,31 @@ struct MCNK
     u32 offsetMccv;
     u32 props;
     u32 effectId;
-
-    bool Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-    {
-        if (offset == 0)
-            return false;
-
-        buffer->Get<u32>(token, offset);
-
-        if (token == NOVUSMAP_MCNK_TOKEN)
-        {
-            buffer->Get<u32>(size, offset + 0x4);
-            buffer->Get<u32>(flags, offset + 0x8);
-            buffer->Get<u32>(ix, offset + 0xC);
-            buffer->Get<u32>(iy, offset + 0x10);
-            buffer->Get<u32>(layers, offset + 0x14);
-            buffer->Get<u32>(doodadRefs, offset + 0x18);
-            buffer->Get<u32>(offsetMcvt, offset + 0x1C); // height map
-            buffer->Get<u32>(offsetMcnr, offset + 0x20); // Normal vectors for each vertex
-            buffer->Get<u32>(offsetMcly, offset + 0x24); // Texture layer definitions
-            buffer->Get<u32>(offsetMcrf, offset + 0x28); // A list of indices into the parent file's MDDF chunk
-            buffer->Get<u32>(offsetMcal, offset + 0x2C); // Alpha maps for additional texture layers
-            buffer->Get<u32>(sizeMcal, offset + 0x30);
-            buffer->Get<u32>(offsetMcsh, offset + 0x34); // Shadow map for static shadows on the terrain
-            buffer->Get<u32>(sizeMcsh, offset + 0x38);
-            buffer->Get<u32>(areaId, offset + 0x3C);
-            buffer->Get<u32>(mapObjectReferences, offset + 0x40);
-            buffer->Get<u32>(holes, offset + 0x44);
-
-            for (u32 i = 1; i <= 16; i++)
-            {
-                buffer->Get<u8>(s[i], offset + 0x48 + i);
-            }
-
-            buffer->Get<u32>(predTex, offset + 0x58);
-            buffer->Get<u32>(effectDoodad, offset + 0x5C);
-            buffer->Get<u32>(offsetMcse, offset + 0x60);
-            buffer->Get<u32>(soundEmitters, offset + 0x64);
-            buffer->Get<u32>(offsetMclq, offset + 0x68); // Liqid level (old)
-            buffer->Get<u32>(sizeMclq, offset + 0x6C);   //
-            buffer->Get<f32>(zPos, offset + 0x70);
-            buffer->Get<f32>(xPos, offset + 0x74);
-            buffer->Get<f32>(yPos, offset + 0x78);
-            buffer->Get<u32>(offsetMccv, offset + 0x7C); // offsColorValues in WotLK
-            buffer->Get<u32>(props, offset + 0x80);
-            buffer->Get<u32>(effectId, offset + 0x84);
-
-            return true;
-        }
-
-        return false;
-    }
 };
 
 struct MCIN
 {
-    MCIN() : token(0), size(0), chunks() {}
+    MCIN() : token(0), size(0) {}
 
     u32 token;
     u32 size;
-    u32 chunks[ADT_CELLS_PER_GRID][ADT_CELLS_PER_GRID];
-
-    bool Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-    {
-        u32 baseAddress = offset;
-        buffer->Get<u32>(token, baseAddress);
-        baseAddress += 0x04;
-
-        if (token == NOVUSMAP_MCIN_TOKEN)
-        {
-            buffer->Get<u32>(size, baseAddress);
-            baseAddress += 0x04;
-
-            for (u32 i = 0; i < 256; i++)
-            {
-                u32 y = i / 16;
-                u32 x = i % 16;
-
-                u32 chunkOffset = 0;
-                buffer->Get<u32>(chunkOffset, baseAddress);
-                chunks[y][x] = chunkOffset < buffer->Size ? chunkOffset : 0;
-                baseAddress += 0x10;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
 };
 
 struct MFBO
 {
     MFBO() : token(0), size(0), max(), min() {}
 
+    struct HeightPlane
+    {
+        // For future implementation: https://www.ownedcore.com/forums/world-of-warcraft/world-of-warcraft-bots-programs/wow-memory-editing/351404-traceline-intersection-collision-detection-height-limit.html
+        i16 heightPoints[3 * 3] = { 0,0,0,0,0,0,0 };
+    };
+
     u32 token;
     u32 size;
 
-    i16 max[9];
-    i16 min[9];
-
-    bool Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-    {
-        u32 baseAddress = offset;
-        buffer->Get<u32>(token, baseAddress);
-        baseAddress += 0x04;
-
-        if (token == NOVUSMAP_MFBO_TOKEN)
-        {
-            /* Add Token Size + Skip Size Field */
-            buffer->Get<u32>(size, baseAddress);
-            baseAddress += 0x04;
-
-            for (u32 i = 0; i < 9; i++)
-            {
-                buffer->Get<i16>(max[i], baseAddress);
-                baseAddress += 0x02;
-            }
-
-            for (u32 i = 0; i < 9; i++)
-            {
-                buffer->Get<i16>(min[i], baseAddress);
-                baseAddress += 0x02;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
+    HeightPlane max;
+    HeightPlane min;
 };
 
 struct MH2O
@@ -311,42 +180,7 @@ struct MH2O
         u32 offsetInformation;
         u32 layers;
         u32 offsetRenderMask;
-
-        static LiquidHeader Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-        {
-            LiquidHeader header;
-            buffer->Get<u32>(header.offsetInformation, offset);
-            buffer->Get<u32>(header.layers, offset + 0x4);
-            buffer->Get<u32>(header.offsetRenderMask, offset + 0x8);
-
-            return header;
-        }
     } liquidHeaders[ADT_CELLS_PER_GRID][ADT_CELLS_PER_GRID];
-
-    bool Read(std::shared_ptr<ByteBuffer> buffer, u32 offset)
-    {
-        u32 baseAddress = offset;
-        buffer->Get<u32>(token, baseAddress);
-        baseAddress += 0x4;
-
-        if (token == NOVUSMAP_MH2O_TOKEN)
-        {
-            buffer->Get<u32>(size, baseAddress);
-            baseAddress += 0x4;
-
-            for (u32 i = 0; i < 256; i++)
-            {
-                u32 y = i / 16;
-                u32 x = i % 16;
-
-                liquidHeaders[y][x] = LiquidHeader::Read(buffer, baseAddress + (y * 16 + x) * sizeof(LiquidHeader));
-            }
-
-            return true;
-        }
-
-        return false;
-    }
 };
 
 struct MHDR
@@ -380,31 +214,5 @@ struct MHDR
     u32 pad5;
     u32 pad6;
     u32 pad7;
-
-    void Read(std::shared_ptr<ByteBuffer> buffer)
-    {
-        buffer->GetU32(token);
-        buffer->GetU32(size);
-
-        if (token == NOVUSMAP_MHDR_TOKEN)
-        {
-            buffer->GetU32(flags);
-            buffer->GetU32(offsetMcin);
-            buffer->GetU32(offsetMtex);
-            buffer->GetU32(offsetMmdx);
-            buffer->GetU32(offsetMmid);
-            buffer->GetU32(offsetMwmo);
-            buffer->GetU32(offsetMwid);
-            buffer->GetU32(offsetMddf);
-            buffer->GetU32(offsetModf);
-            buffer->GetU32(offsetMfbo);
-            buffer->GetU32(offsetMh2o);
-            buffer->GetU32(offsetMtfx);
-            buffer->GetU32(pad4);
-            buffer->GetU32(pad5);
-            buffer->GetU32(pad6);
-            buffer->GetU32(pad7);
-        }
-    }
 };
 #pragma pack(pop)

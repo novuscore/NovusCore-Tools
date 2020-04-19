@@ -62,17 +62,9 @@ struct NovusHeightHeader
     f32 gridMaxHeight;
 };
 
-struct NovusAreaHeader
+struct ChunkHeader
 {
-    NovusAreaHeader() : hasSubArea(false), areaId(0) {}
-
-    u8 hasSubArea;
-    u16 areaId;
-};
-
-struct NovusAdtHeader
-{
-    NovusAdtHeader() : token(NOVUSMAP_TOKEN), version(NOVUSMAP_VERSION) {}
+    ChunkHeader() : token(NOVUSMAP_TOKEN), version(NOVUSMAP_VERSION) {}
 
     u32 token;
     u32 version;
@@ -85,12 +77,6 @@ public:
     ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath);
     void Convert();
     u8 GetLiquidIdFromType(u16 type);
-
-    MVER mver;
-    MHDR mhdr;
-    MCIN mcin;
-    MH2O mh2o;
-    MFBO mfbo;
 
 private:
     // Grid Data Storage
