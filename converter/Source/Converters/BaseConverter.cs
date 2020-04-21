@@ -12,7 +12,9 @@ namespace Converter.Converters
         protected string GetAssetPath(string pythonPath)
         {
             int pyExtIndex = pythonPath.LastIndexOf(".py");
-            return pythonPath.Substring(0, pyExtIndex);
+            string subStr = pythonPath.Substring(0, pyExtIndex);
+
+            return subStr.Replace('\\', '/');
         }
     }
 }

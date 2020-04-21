@@ -51,10 +51,9 @@ namespace Converter.Converters
         {
             error = "";
             string assetPath = GetAssetPath(pythonPath);
-
             outputDirectory = Path.Combine(outputDirectory, "textures");
 
-            int subPathStartIndex = assetPath.IndexOf("client\\Data\\") + "client\\Data\\".Length;
+            int subPathStartIndex = assetPath.IndexOf("client/Data/") + "client/Data/".Length;
             string subPath = assetPath.Substring(subPathStartIndex);
 
             string destinationFilePath = Path.Combine(outputDirectory, subPath);
