@@ -48,6 +48,8 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
             createAdtDirectory = false;
         }
 
+        NC_LOG_MESSAGE("Extracting %s", adtName.c_str());
+
         std::string fileName = "";
         std::stringstream fileNameStream;
         std::stringstream filePathStream;

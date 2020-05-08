@@ -3,13 +3,11 @@
 
 ADT::ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
 {
-    memset(areaIds, 0, sizeof(areaIds));
-    memset(heightMap, 0, sizeof(heightMap));
+
 }
 
 void ADT::Convert()
 {
-
     std::shared_ptr<ByteBuffer> buffer = _file->buffer;
 
     MVER mver;
@@ -52,15 +50,11 @@ void ADT::Convert()
         buffer->Get<u32>(mh2o.size, mh2oReadOffset, true);
     }
 
-    ChunkHeader chunkHeader;
-    NovusHeightHeader heightHeader;
+    Chunk chunk;
 
     u32 mcinCellOffset = 0;
     for (u32 i = 0; i < 256; i++)
     {
-        u32 y = i / 16;
-        u32 x = i % 16;
-
         // Read MCIN Cell information
         buffer->Get<u32>(mcinCellOffset, mcinReadOffset);
         assert(mcinCellOffset < buffer->Size);
@@ -69,7 +63,7 @@ void ADT::Convert()
         size_t cellAddress = static_cast<size_t>(mcinCellOffset);
         
         MCNK mcnk;
-        if (mcinReadOffset)
+        if (mcinCellOffset)
         {
             buffer->Get<u32>(mcnk.token, cellAddress, true);
             assert(mcnk.token == NOVUSMAP_MCNK_TOKEN);
@@ -110,9 +104,8 @@ void ADT::Convert()
             buffer->Get<u32>(mcnk.props, cellAddress, true);
             buffer->Get<u32>(mcnk.effectId, cellAddress, true);
 
-            areaIds[y][x] = mcnk.areaId;
+            chunk.cells[i].areaId = mcnk.areaId;
         }
-
 
         MCVT mcvt;
         size_t mcvtReadOffset = mcnk.offsetMcvt + mcinCellOffset;
@@ -124,7 +117,7 @@ void ADT::Convert()
         }
 
         f32 height = 0;
-        for (u32 j = 0; j < 145; j++)
+        for (u32 j = 0; j < CELL_TOTAL_GRID_SIZE; j++)
         {
             // Read Height Offset (if valid offset) + Add MCNK yPos
             if (mcvtReadOffset)
@@ -133,25 +126,25 @@ void ADT::Convert()
             }
             height += mcnk.yPos;
 
-            heightMap[i][j] = height;
+            chunk.cells[i].heightData[j] = height;
 
-            if (heightHeader.gridHeight > height)
-                heightHeader.gridHeight = height;
-            if (heightHeader.gridMaxHeight < height)
-                heightHeader.gridMaxHeight = height;
+            if (chunk.heightHeader.gridMinHeight > height)
+                chunk.heightHeader.gridMinHeight = height;
+            if (chunk.heightHeader.gridMaxHeight < height)
+                chunk.heightHeader.gridMaxHeight = height;
         }
-
+        
         // Read MH2O Liquid Data if offset is valid
         if (mhdr.offsetMh2o)
         {
-            size_t liquidHeaderOffset = mh2oReadOffset + (y * 16 + x) * sizeof(MH2O::LiquidHeader);
+            size_t liquidHeaderOffset = mh2oReadOffset + i * sizeof(MH2O::LiquidHeader);
 
             MH2O::LiquidHeader header;
             buffer->Get<u32>(header.offsetInformation, liquidHeaderOffset, true);
             buffer->Get<u32>(header.layers, liquidHeaderOffset, true);
             buffer->Get<u32>(header.offsetRenderMask, liquidHeaderOffset, true);
 
-            mh2o.liquidHeaders[y][x] = header;
+            // We should be reading the Cell LiquidData here
         }
     }
 
@@ -175,24 +168,11 @@ void ADT::Convert()
         return;
     }
 
-    // Write Chunk Header & AreaIds
-    output.write(reinterpret_cast<char const*>(&chunkHeader), sizeof(chunkHeader));
-    output.write(reinterpret_cast<char const*>(&areaIds), sizeof(areaIds));
-
-    // Write HeightHeader, Height Maps
-    output.write(reinterpret_cast<char const*>(&heightHeader), sizeof(heightHeader));
-    output.write(reinterpret_cast<char const*>(&heightMap), sizeof(heightMap));
-
-    // Write Height Boxes if needed (HeightLimitBox)
-    if (heightHeader.hasHeightBox)
-    {
-        output.write(reinterpret_cast<char*>(heightBoxMin), sizeof(heightBoxMin));
-        output.write(reinterpret_cast<char*>(heightBoxMax), sizeof(heightBoxMax));
-    }
-
+    output.write(reinterpret_cast<char const*>(&chunk), sizeof(Chunk));
     output.close();
 }
 
+// DO NOT REMOVE THIS
 u8 ADT::GetLiquidIdFromType(u16 type)
 {
     switch (type)

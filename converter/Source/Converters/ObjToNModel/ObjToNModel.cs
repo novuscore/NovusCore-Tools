@@ -98,7 +98,7 @@ namespace Converter.Converters
                 // Convert indices
 
                 // This dictionary will hold unique vertices as keys, and it's corresponding index as value, this makes it easy for us to look up indices of duplicated vertices
-                Dictionary<NovusModel.Vertex, Int16> combinedVertices = new Dictionary<NovusModel.Vertex, Int16>();
+                Dictionary<NovusModel.Vertex, UInt32> combinedVertices = new Dictionary<NovusModel.Vertex, UInt32>();
 
                 foreach (ObjLoader.Loader.Data.Elements.Group group in result.Groups) // A group represents a "submesh"
                 {
@@ -106,7 +106,7 @@ namespace Converter.Converters
                     {
                         Debug.Assert(face.Count == 3 || face.Count == 4); // I haven't seen a model where faces don't have 3 or 4 indices yet
 
-                        Int16[] combinedIndices = new Int16[face.Count];
+                        UInt32[] combinedIndices = new UInt32[face.Count];
                         for (int i = 0; i < face.Count; i++)
                         {
                             Vec3 position = vertexPositions[face[i].VertexIndex - 1];
@@ -151,7 +151,7 @@ namespace Converter.Converters
             return true;
         }
 
-        Int16 CombineVertex(Vec3 position, Vec3 normal, Vec2 texCoord, ref Dictionary<NovusModel.Vertex, Int16> combinedVertices)
+        UInt32 CombineVertex(Vec3 position, Vec3 normal, Vec2 texCoord, ref Dictionary<NovusModel.Vertex, UInt32> combinedVertices)
         {
             NovusModel.Vertex combinedVertex = new NovusModel.Vertex();
             combinedVertex.position = position;
@@ -166,7 +166,7 @@ namespace Converter.Converters
             }
 
             // Otherwise, we add the vertex to the dict and return its index
-            Int16 index = (Int16)combinedVertices.Count;
+            UInt32 index = (UInt32)combinedVertices.Count;
             combinedVertices.Add(combinedVertex, index);
             return index;
         }
@@ -206,7 +206,7 @@ namespace Converter.Converters
 
         public List<Vertex> vertices = new List<Vertex>();
         public VkPrimitiveTopology indexType;
-        public List<Int16> indices = new List<Int16>();
+        public List<UInt32> indices = new List<UInt32>();
 
         public void Serialize(BinaryWriter binaryWriter)
         {
@@ -230,7 +230,7 @@ namespace Converter.Converters
             // Write indices
             binaryWriter.Write((int)indexType);
             binaryWriter.Write((uint)indices.Count);
-            foreach (Int16 index in indices)
+            foreach (UInt32 index in indices)
             {
                 binaryWriter.Write(index);
             }

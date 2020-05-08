@@ -26,50 +26,52 @@
 #include <Utils/ByteBuffer.h>
 #include "ADTStructs.h"
 #include "../MPQ/MPQFile.h"
+#include "Cell.h"
 
-#define NOVUSMAP_TOKEN 1313685840
-#define NOVUSMAP_VERSION 808464433
+constexpr i32 MAP_CHUNK_TOKEN = 1313685840;
+constexpr i32 MAP_CHUNK_VERSION = 808464434;
+
+constexpr u32 MAP_CHUNKS_PER_MAP_SIDE = 64;
+constexpr u16 MAP_CHUNK_INVALID = std::numeric_limits<u16>().max();
+
+constexpr u16 MAP_CELLS_PER_CHUNK_SIDE = 16;
+constexpr u16 MAP_CELLS_PER_CHUNK = MAP_CELLS_PER_CHUNK_SIDE * MAP_CELLS_PER_CHUNK_SIDE;
 
 #pragma pack(push, 1)
-struct NovusHoleHeader
-{
-    NovusHoleHeader() : hasHoleData(false) {}
-
-    u8 hasHoleData;
-};
-
-struct NovusLiquidHeader
-{
-    NovusLiquidHeader() : hasLiquidData(false), hasMultipleLiquidTypes(false), offsetX(255), offsetY(255), width(0), height(0), level(20000) {}
-
-    u8 hasLiquidData;
-    u8 hasMultipleLiquidTypes;
-    u8 offsetX;
-    u8 offsetY;
-    u8 width;
-    u8 height;
-    u8 liquidFlags;
-    u16 liquidEntry;
-    f32 level;
-};
-
-struct NovusHeightHeader
-{
-    NovusHeightHeader() : hasHeightBox(false), gridHeight(20000), gridMaxHeight(-20000) {}
-
-    u8 hasHeightBox;
-    f32 gridHeight;
-    f32 gridMaxHeight;
-};
-
 struct ChunkHeader
 {
-    ChunkHeader() : token(NOVUSMAP_TOKEN), version(NOVUSMAP_VERSION) {}
-
-    u32 token;
-    u32 version;
+    u32 token = MAP_CHUNK_TOKEN;
+    u32 version = MAP_CHUNK_VERSION;
 };
-#pragma pack(pop)
+
+struct HeightHeader
+{
+    u8 hasHeightBox = false;
+    f32 gridMinHeight = 20000;
+    f32 gridMaxHeight = -20000;
+};
+
+struct HeightPlane
+{
+    // For future implementation: https://www.ownedcore.com/forums/world-of-warcraft/world-of-warcraft-bots-programs/wow-memory-editing/351404-traceline-intersection-collision-detection-height-limit.html
+    i16 heightPoints[3 * 3] = { 0 };
+};
+
+struct HeightBox
+{
+    HeightPlane minHeight;
+    HeightPlane maxHeight;
+};
+
+struct Chunk
+{
+    ChunkHeader chunkHeader;
+
+    HeightHeader heightHeader;
+    HeightBox heightBox;
+
+    Cell cells[MAP_CELLS_PER_CHUNK];
+};
 
 class ADT
 {
@@ -79,14 +81,17 @@ public:
     u8 GetLiquidIdFromType(u16 type);
 
 private:
-    // Grid Data Storage
-    u16 areaIds[ADT_CELLS_PER_GRID][ADT_CELLS_PER_GRID];
-    f32 heightMap[ADT_CELLS_PER_GRID * ADT_CELLS_PER_GRID][(ADT_CELL_SIZE + 1) * (ADT_CELL_SIZE + 1) + ADT_CELL_SIZE * ADT_CELL_SIZE];
+    
 
-    i16 heightBoxMax[3][3];
-    i16 heightBoxMin[3][3];
+    // Grid Data Storage
+    //u16 areaIds[ADT_CELLS_PER_GRID][ADT_CELLS_PER_GRID];
+    //f32 heightMap[ADT_CELLS_PER_GRID * ADT_CELLS_PER_GRID][(ADT_CELL_SIZE + 1) * (ADT_CELL_SIZE + 1) + ADT_CELL_SIZE * ADT_CELL_SIZE];
+
+    //i16 heightBoxMax[3][3];
+    //i16 heightBoxMin[3][3];
 
     std::shared_ptr<MPQFile> _file;
     std::string _fileName;
     std::string _filePath;
 };
+#pragma pack(pop)

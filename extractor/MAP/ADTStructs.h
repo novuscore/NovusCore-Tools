@@ -170,7 +170,7 @@ struct MFBO
 
 struct MH2O
 {
-    MH2O() : token(0), size(0), liquidHeaders() {}
+    MH2O() : token(0), size(0) {}
 
     u32 token;
     u32 size;
@@ -180,7 +180,7 @@ struct MH2O
         u32 offsetInformation;
         u32 layers;
         u32 offsetRenderMask;
-    } liquidHeaders[ADT_CELLS_PER_GRID][ADT_CELLS_PER_GRID];
+    };
 };
 
 struct MHDR
