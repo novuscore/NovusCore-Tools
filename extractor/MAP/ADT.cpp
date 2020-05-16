@@ -1,5 +1,7 @@
 #include "ADT.h"
 #include <fstream>
+#include <Utils/DebugHandler.h>
+#include <vector>
 
 ADT::ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
 {
@@ -63,88 +65,126 @@ void ADT::Convert()
         size_t cellAddress = static_cast<size_t>(mcinCellOffset);
         
         MCNK mcnk;
-        if (mcinCellOffset)
+if (mcinCellOffset)
+{
+    buffer->Get<u32>(mcnk.token, cellAddress, true);
+    assert(mcnk.token == NOVUSMAP_MCNK_TOKEN);
+    buffer->Get<u32>(mcnk.size, cellAddress, true);
+
+    buffer->Get<u32>(mcnk.flags, cellAddress, true);
+    buffer->Get<u32>(mcnk.ix, cellAddress, true);
+    buffer->Get<u32>(mcnk.iy, cellAddress, true);
+    buffer->Get<u32>(mcnk.layers, cellAddress, true);
+    buffer->Get<u32>(mcnk.doodadRefs, cellAddress, true);
+    buffer->Get<u32>(mcnk.offsetMcvt, cellAddress, true); // height map
+    buffer->Get<u32>(mcnk.offsetMcnr, cellAddress, true); // Normal vectors for each vertex
+    buffer->Get<u32>(mcnk.offsetMcly, cellAddress, true); // Texture layer definitions
+    buffer->Get<u32>(mcnk.offsetMcrf, cellAddress, true); // A list of indices into the parent file's MDDF chunk
+    buffer->Get<u32>(mcnk.offsetMcal, cellAddress, true); // Alpha maps for additional texture layers
+    buffer->Get<u32>(mcnk.sizeMcal, cellAddress, true);
+    buffer->Get<u32>(mcnk.offsetMcsh, cellAddress, true); // Shadow map for static shadows on the terrain
+    buffer->Get<u32>(mcnk.sizeMcsh, cellAddress, true);
+    buffer->Get<u32>(mcnk.areaId, cellAddress, true);
+    buffer->Get<u32>(mcnk.mapObjectReferences, cellAddress, true);
+    buffer->Get<u32>(mcnk.holes, cellAddress, true);
+
+    for (u32 i = 0; i < 16; i++)
+    {
+        buffer->Get<u8>(mcnk.lowQualityTextureMap[i], cellAddress, true);
+    }
+
+    buffer->Get<u32>(mcnk.predTex, cellAddress, true);
+    buffer->Get<u32>(mcnk.effectDoodad, cellAddress, true);
+    buffer->Get<u32>(mcnk.offsetMcse, cellAddress, true);
+    buffer->Get<u32>(mcnk.soundEmitters, cellAddress, true);
+    buffer->Get<u32>(mcnk.offsetMclq, cellAddress, true); // Liquid level (old)
+    buffer->Get<u32>(mcnk.sizeMclq, cellAddress, true);   //
+    buffer->Get<f32>(mcnk.zPos, cellAddress, true);
+    buffer->Get<f32>(mcnk.xPos, cellAddress, true);
+    buffer->Get<f32>(mcnk.yPos, cellAddress, true);
+    buffer->Get<u32>(mcnk.offsetMccv, cellAddress, true); // offsColorValues in WotLK
+    buffer->Get<u32>(mcnk.props, cellAddress, true);
+    buffer->Get<u32>(mcnk.effectId, cellAddress, true);
+
+    chunk.cells[i].areaId = mcnk.areaId;
+
+    u32 numLayers = mcnk.layers;
+
+    for (u32 i = 0; i < numLayers; i++)
+    {
+        size_t mclyAddress = mcinCellOffset + 8 + mcnk.offsetMcly + (i * sizeof(MCLY));
+        MCLY mcly;
+        buffer->Get<MCLY>(mcly, mclyAddress);
+
+        if (i != 0 || mcly.textureId != 0)
         {
-            buffer->Get<u32>(mcnk.token, cellAddress, true);
-            assert(mcnk.token == NOVUSMAP_MCNK_TOKEN);
-            buffer->Get<u32>(mcnk.size, cellAddress, true);
-
-            buffer->Get<u32>(mcnk.flags, cellAddress, true);
-            buffer->Get<u32>(mcnk.ix, cellAddress, true);
-            buffer->Get<u32>(mcnk.iy, cellAddress, true);
-            buffer->Get<u32>(mcnk.layers, cellAddress, true);
-            buffer->Get<u32>(mcnk.doodadRefs, cellAddress, true);
-            buffer->Get<u32>(mcnk.offsetMcvt, cellAddress, true); // height map
-            buffer->Get<u32>(mcnk.offsetMcnr, cellAddress, true); // Normal vectors for each vertex
-            buffer->Get<u32>(mcnk.offsetMcly, cellAddress, true); // Texture layer definitions
-            buffer->Get<u32>(mcnk.offsetMcrf, cellAddress, true); // A list of indices into the parent file's MDDF chunk
-            buffer->Get<u32>(mcnk.offsetMcal, cellAddress, true); // Alpha maps for additional texture layers
-            buffer->Get<u32>(mcnk.sizeMcal, cellAddress, true);
-            buffer->Get<u32>(mcnk.offsetMcsh, cellAddress, true); // Shadow map for static shadows on the terrain
-            buffer->Get<u32>(mcnk.sizeMcsh, cellAddress, true);
-            buffer->Get<u32>(mcnk.areaId, cellAddress, true);
-            buffer->Get<u32>(mcnk.mapObjectReferences, cellAddress, true);
-            buffer->Get<u32>(mcnk.holes, cellAddress, true);
-
-            for (u32 i = 0; i < 16; i++)
-            {
-                buffer->Get<u8>(mcnk.lowQualityTextureMap[i], cellAddress, true);
-            }
-
-            buffer->Get<u32>(mcnk.predTex, cellAddress, true);
-            buffer->Get<u32>(mcnk.effectDoodad, cellAddress, true);
-            buffer->Get<u32>(mcnk.offsetMcse, cellAddress, true);
-            buffer->Get<u32>(mcnk.soundEmitters, cellAddress, true);
-            buffer->Get<u32>(mcnk.offsetMclq, cellAddress, true); // Liquid level (old)
-            buffer->Get<u32>(mcnk.sizeMclq, cellAddress, true);   //
-            buffer->Get<f32>(mcnk.zPos, cellAddress, true);
-            buffer->Get<f32>(mcnk.xPos, cellAddress, true);
-            buffer->Get<f32>(mcnk.yPos, cellAddress, true);
-            buffer->Get<u32>(mcnk.offsetMccv, cellAddress, true); // offsColorValues in WotLK
-            buffer->Get<u32>(mcnk.props, cellAddress, true);
-            buffer->Get<u32>(mcnk.effectId, cellAddress, true);
-
-            chunk.cells[i].areaId = mcnk.areaId;
+            NC_LOG_MESSAGE("TextureID: %u", mcly.textureId);
         }
+    }
+}
 
-        MCVT mcvt;
-        size_t mcvtReadOffset = mcnk.offsetMcvt + mcinCellOffset;
-        if (mcvtReadOffset)
+MCVT mcvt;
+size_t mcvtReadOffset = mcnk.offsetMcvt + mcinCellOffset;
+if (mcvtReadOffset)
+{
+    buffer->Get<u32>(mcvt.token, mcvtReadOffset, true);
+    assert(mcvt.token == NOVUSMAP_MCVT_TOKEN);
+    buffer->Get<u32>(mcvt.size, mcvtReadOffset, true);
+}
+
+f32 height = 0;
+for (u32 j = 0; j < CELL_TOTAL_GRID_SIZE; j++)
+{
+    // Read Height Offset (if valid offset) + Add MCNK yPos
+    if (mcvtReadOffset)
+    {
+        buffer->Get<f32>(height, mcvtReadOffset, true);
+    }
+    height += mcnk.yPos;
+
+    chunk.cells[i].heightData[j] = height;
+
+    if (chunk.heightHeader.gridMinHeight > height)
+        chunk.heightHeader.gridMinHeight = height;
+    if (chunk.heightHeader.gridMaxHeight < height)
+        chunk.heightHeader.gridMaxHeight = height;
+}
+
+// Read MH2O Liquid Data if offset is valid
+if (mhdr.offsetMh2o)
+{
+    size_t liquidHeaderOffset = mh2oReadOffset + i * sizeof(MH2O::LiquidHeader);
+
+    MH2O::LiquidHeader header;
+    buffer->Get<u32>(header.offsetInformation, liquidHeaderOffset, true);
+    buffer->Get<u32>(header.layers, liquidHeaderOffset, true);
+    buffer->Get<u32>(header.offsetRenderMask, liquidHeaderOffset, true);
+
+    // We should be reading the Cell LiquidData here
+}
+    }
+
+    // Texture names
+    {
+        size_t mtexOffset = mhdr.offsetMtex + 0x14;
+
+        MTEX mtex;
+        buffer->Get<u32>(mtex.token, mtexOffset, true);
+        assert(mtex.token == NOVUSMAP_MTEX_TOKEN);
+        buffer->Get<u32>(mtex.size, mtexOffset, true);
+
+        mtex.filenames = new u8[mtex.size];
+        buffer->GetBytes(mtex.filenames, mtex.size, mtexOffset);
+        ByteBuffer textureByteBuffer(mtex.filenames, mtex.size);
+
+        std::vector<std::string> textureNames;
+        textureNames.reserve(8);
+
+        while (textureByteBuffer.ReadData != textureByteBuffer.Size)
         {
-            buffer->Get<u32>(mcvt.token, mcvtReadOffset, true);
-            assert(mcvt.token == NOVUSMAP_MCVT_TOKEN);
-            buffer->Get<u32>(mcvt.size, mcvtReadOffset, true);
-        }
-
-        f32 height = 0;
-        for (u32 j = 0; j < CELL_TOTAL_GRID_SIZE; j++)
-        {
-            // Read Height Offset (if valid offset) + Add MCNK yPos
-            if (mcvtReadOffset)
-            {
-                buffer->Get<f32>(height, mcvtReadOffset, true);
-            }
-            height += mcnk.yPos;
-
-            chunk.cells[i].heightData[j] = height;
-
-            if (chunk.heightHeader.gridMinHeight > height)
-                chunk.heightHeader.gridMinHeight = height;
-            if (chunk.heightHeader.gridMaxHeight < height)
-                chunk.heightHeader.gridMaxHeight = height;
-        }
-        
-        // Read MH2O Liquid Data if offset is valid
-        if (mhdr.offsetMh2o)
-        {
-            size_t liquidHeaderOffset = mh2oReadOffset + i * sizeof(MH2O::LiquidHeader);
-
-            MH2O::LiquidHeader header;
-            buffer->Get<u32>(header.offsetInformation, liquidHeaderOffset, true);
-            buffer->Get<u32>(header.layers, liquidHeaderOffset, true);
-            buffer->Get<u32>(header.offsetRenderMask, liquidHeaderOffset, true);
-
-            // We should be reading the Cell LiquidData here
+            std::string textureName;
+            textureByteBuffer.GetString(textureName);
+            textureNames.push_back(textureName);
         }
     }
 

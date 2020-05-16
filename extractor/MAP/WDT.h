@@ -79,6 +79,12 @@ struct MAIN
     SMAreaInfo mapAreaInfo[NUM_SM_AREA_INFO];
 };
 
+enum AlphaType
+{
+    SmallAlpha,
+    BigAlpha
+};
+
 // TODO: for WMO only maps, load MWMO, MODF chunks
 class WDT
 {
@@ -86,10 +92,13 @@ public:
     WDT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath);
     std::vector<u32> Convert();
 
-private:
+    AlphaType GetAlphaType();
 
+private:
     std::shared_ptr<MPQFile> _file;
     std::string _fileName;
     std::string _filePath;
+
+    AlphaType _alphaType;
 };
 #pragma pack(pop)
