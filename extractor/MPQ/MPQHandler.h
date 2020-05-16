@@ -30,7 +30,7 @@
 #include "MPQArchive.h"
 #include "MPQFile.h"
 
-const std::vector<std::string> MPQArchives = {"patch.MPQ", "patch-2.MPQ", "patch-3.MPQ", "patch-enUS.MPQ", "patch-enUS-2.MPQ", "patch-enUS-3.MPQ", "patch-enGB.MPQ", "patch-enGB-2.MPQ", "patch-enGB-3.MPQ"};
+const std::vector<std::string> MPQArchives = { "common.MPQ", "common-2.MPQ", "patch.MPQ", "patch-2.MPQ", "patch-3.MPQ", "patch-enUS.MPQ", "patch-enUS-2.MPQ", "patch-enUS-3.MPQ", "patch-enGB.MPQ", "patch-enGB-2.MPQ", "patch-enGB-3.MPQ" };
 class MPQHandler
 {
 public:

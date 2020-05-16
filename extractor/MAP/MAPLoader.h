@@ -26,6 +26,7 @@
 #include <filesystem>
 #include <sstream>
 #include "ADT.h"
+#include "WDT.h"
 #include "../MPQ/MPQHandler.h"
 #include "../Utils/ServiceLocator.h"
 
@@ -54,34 +55,45 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
         std::stringstream fileNameStream;
         std::stringstream filePathStream;
 
-        for (u32 x = 0; x < 64; x++)
+        // WDT File
+        filePathStream << "world\\maps\\" << adtName << "\\" << adtName << ".WDT";
+
+        std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
+        if (!file)
+            continue;
+
+        WDT mapWdt(file, adtName + ".wdt", adtPath.string());
+        std::vector<u32> adtsToRead = mapWdt.Convert();
+
+        filePathStream.clear();
+        filePathStream.str("");
+
+        for (u32 adt : adtsToRead)
         {
-            for (u32 y = 0; y < 64; y++)
+            u32 x = adt % 64;
+            u32 y = adt / 64;
+
+            fileNameStream.clear();
+            fileNameStream.str("");
+
+            filePathStream.clear();
+            filePathStream.str("");
+
+            fileNameStream << adtName << "_" << x << "_" << y;
+            fileName = fileNameStream.str();
+            filePathStream << "world\\maps\\" << adtName << "\\" << fileName << ".adt";
+
+            std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
+            assert(file); // If this file does not exist, something went very wrong
+
+            if (createAdtDirectory)
             {
-                // We could read the WDL file here to get the ADT list
-                fileNameStream.clear();
-                fileNameStream.str("");
-
-                filePathStream.clear();
-                filePathStream.str("");
-
-                fileNameStream << adtName << "_" << x << "_" << y;
-                fileName = fileNameStream.str();
-                filePathStream << "world\\maps\\" << adtName << "\\" << fileName << ".adt";
-
-                std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
-                if (!file)
-                    continue;
-
-                if (createAdtDirectory)
-                {
-                    std::filesystem::create_directory(adtPath);
-                    createAdtDirectory = false;
-                }
-
-                ADT mapAdt(file, fileName + ".nmap", adtPath.string());
-                mapAdt.Convert();
+                std::filesystem::create_directory(adtPath);
+                createAdtDirectory = false;
             }
+
+            ADT mapAdt(file, fileName + ".nmap", adtPath.string());
+            mapAdt.Convert();
         }
     }
 
