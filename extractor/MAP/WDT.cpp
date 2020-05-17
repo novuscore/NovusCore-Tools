@@ -20,9 +20,10 @@ std::vector<u32> WDT::Convert()
     MPHD mphd;
     buffer->Get<MPHD>(mphd);
 
-    //size_t readOffset = buffer->ReadData + mphd.size;
+    _alphaType = (mphd.flags & adt_has_big_alpha) ? AlphaType::BigAlpha : AlphaType::SmallAlpha;
+
     MAIN main;
-    buffer->Get<MAIN>(main);// , readOffset);
+    buffer->Get<MAIN>(main);
 
     std::vector<u32> adtsToRead;
     adtsToRead.reserve(NUM_SM_AREA_INFO);
@@ -40,4 +41,9 @@ std::vector<u32> WDT::Convert()
 
     NC_LOG_MESSAGE("%i ADTs to read", adtsToRead.size());
     return adtsToRead;
+}
+
+AlphaType WDT::GetAlphaType()
+{
+    return _alphaType;
 }

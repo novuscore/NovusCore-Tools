@@ -38,6 +38,7 @@
 #define NOVUSMAP_MFBO_TOKEN 1296450127 
 #define NOVUSMAP_MH2O_TOKEN 1296577103
 #define NOVUSMAP_MCVT_TOKEN 1296258644
+#define NOVUSMAP_MTEX_TOKEN 1297368408
 
 enum LIQUID_ID
 {
@@ -95,6 +96,36 @@ struct MCLQ
     // == 0x0F - not show liquid
     u8 flags[ADT_CELL_SIZE][ADT_CELL_SIZE] = {};
     u8 data[84] = {};
+};
+
+struct MCLY
+{
+    u32 textureId;
+
+    struct Flags
+    {
+        u32 animationRotation : 3;      // each tick is 45°
+        u32 animationSpeed : 3;
+        u32 animationEnabled : 1;
+        u32 overbright : 1;             // This will make the texture way brighter. Used for lava to make it "glow".
+        u32 useAlphaMap : 1;            // set for every layer after the first
+        u32 alphaMapCompressed : 1;     // see MCAL chunk description
+        u32 useCubeMapReflection : 1;   // This makes the layer behave like its a reflection of the skybox. See below
+        u32 unknown_0x800 : 1;          // WoD?+ if either of 0x800 or 0x1000 is set, texture effects' texture_scale is applied
+        u32 unknown_0x1000 : 1;         // WoD?+ see 0x800
+        u32 unused : 19;
+    };
+    Flags flags;
+
+    u32 offsetInMCAL;
+    u32 effectID; // See: https://wowdev.wiki/ADT/v18#MCLY_sub-chunk
+};
+
+struct MTEX
+{
+    u32 token;
+    u32 size;
+    u8* filenames;
 };
 
 struct MCNK
