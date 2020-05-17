@@ -25,7 +25,6 @@
 #include <Utils/DebugHandler.h>
 #include <Utils/StringUtils.h>
 #include <sstream>
-#include "../MPQ/MPQHandler.h"
 #include "DBCReader.h"
 #include "DBCStructures.h"
 #include "../Utils/ServiceLocator.h"
@@ -34,21 +33,21 @@ namespace DBCLoader
 {
     bool LoadMap(std::vector<std::string>& adtLocationOutput)
     {
-        std::shared_ptr<MPQHandler> handler = ServiceLocator::GetMPQHandler();
+        std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
 
-        std::shared_ptr<MPQFile> file = handler->GetFile("DBFilesClient\\Map.dbc");
+        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\Map.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load Map.dbc");
             return false;
         }
 
-        DBCReader* dbcReader = DBCReader::GetReader();
+        std::shared_ptr<DBCReader> dbcReader = ServiceLocator::GetDBCReader();
         if (!dbcReader)
             return false;
 
         NC_LOG_MESSAGE("Loading Map.dbc...");
-        if (dbcReader->Load(file->buffer) != 0)
+        if (dbcReader->Load(file) != 0)
             return false;
 
         u32 rows = dbcReader->GetNumRows();
@@ -84,7 +83,7 @@ namespace DBCLoader
 
         ss << ";" << std::endl;
 
-        std::filesystem::path outputPath = ServiceLocator::GetSQLFolderPath();
+        std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Sql");
         std::ofstream output(outputPath.string() + "/Map.sql", std::ofstream::out);
         output << ss.str();
         output.close();
@@ -94,9 +93,9 @@ namespace DBCLoader
 
     bool LoadEmotesText()
     {
-        std::shared_ptr<MPQHandler> handler = ServiceLocator::GetMPQHandler();
+        std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
         
-        std::shared_ptr<MPQFile> file = handler->GetFile("DBFilesClient\\EmotesText.dbc");
+        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\EmotesText.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load EmotesText.dbc");
@@ -105,11 +104,11 @@ namespace DBCLoader
 
         NC_LOG_MESSAGE("Loading EmotesText.dbc...");
 
-        DBCReader* dbcReader = DBCReader::GetReader();
+        std::shared_ptr<DBCReader> dbcReader = ServiceLocator::GetDBCReader();
         if (!dbcReader)
             return false;
 
-        if (dbcReader->Load(file->buffer) != 0)
+        if (dbcReader->Load(file) != 0)
             return false;
 
         u32 rows = dbcReader->GetNumRows();
@@ -137,7 +136,7 @@ namespace DBCLoader
 
         ss << ";" << std::endl;
 
-        std::filesystem::path outputPath = ServiceLocator::GetSQLFolderPath();
+        std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Sql");
         std::ofstream output(outputPath.string() + "/EmotesText.sql", std::ofstream::out);
         output << ss.str();
         output.close();
@@ -168,21 +167,21 @@ namespace DBCLoader
 
     bool LoadSpell()
     {
-        std::shared_ptr<MPQHandler> handler = ServiceLocator::GetMPQHandler();
+        std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
 
-        std::shared_ptr<MPQFile> file = handler->GetFile("DBFilesClient\\Spell.dbc");
+        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\Spell.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load Spell.dbc");
             return false;
         }
 
-        DBCReader* dbcReader = DBCReader::GetReader();
+        std::shared_ptr<DBCReader> dbcReader = ServiceLocator::GetDBCReader();
         if (!dbcReader)
             return false;
 
         NC_LOG_MESSAGE("Loading Spell.dbc...");
-        if (dbcReader->Load(file->buffer) != 0)
+        if (dbcReader->Load(file) != 0)
             return false;
 
         u32 rows = dbcReader->GetNumRows();
@@ -413,8 +412,7 @@ namespace DBCLoader
         }
 
         ss << ";" << std::endl;
-
-        std::filesystem::path outputPath = ServiceLocator::GetSQLFolderPath();
+        std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Sql");
         std::ofstream output(outputPath.string() + "/Spell.sql", std::ofstream::out);
         output << ss.str();
         output.close();

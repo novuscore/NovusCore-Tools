@@ -1,7 +1,5 @@
 #include "DBCReader.h"
 
-DBCReader* DBCReader::_reader;
-
 /*
 	1 = Can't open file
 	2 = Invalid format
@@ -27,6 +25,12 @@ int DBCReader::Load(std::shared_ptr<ByteBuffer> buffer)
     catch (std::exception)
     {
         return 2;
+    }
+     
+    // Cleanup Memory if we've previously loaded DBC Files
+    if (_data)
+    {
+        delete[] _data;
     }
 
     u32 dataSize = _rowSize * _rowCount + _stringSize;

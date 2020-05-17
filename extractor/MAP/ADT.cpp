@@ -1,14 +1,14 @@
 #include "ADT.h"
 #include <fstream>
 
-ADT::ADT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
+ADT::ADT(std::shared_ptr<ByteBuffer> file, std::string fileName, std::string filePath) : _file(file), _fileName(fileName), _filePath(filePath)
 {
 
 }
 
 void ADT::Convert()
 {
-    std::shared_ptr<ByteBuffer> buffer = _file->buffer;
+    std::shared_ptr<ByteBuffer>& buffer = _file;
 
     MVER mver;
     buffer->Get<MVER>(mver);

@@ -39,8 +39,8 @@ endif()
 add_compile_definitions(NOMINMAX _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	common::common
-	libmpq::libmpq
+    common::common
+    stormlib::stormlib
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

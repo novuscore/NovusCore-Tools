@@ -27,22 +27,21 @@
 #include <sstream>
 #include "ADT.h"
 #include "WDT.h"
-#include "../MPQ/MPQHandler.h"
 #include "../Utils/ServiceLocator.h"
 
 namespace MapLoader
 {
+    namespace fs = std::filesystem;
 void LoadMaps(std::vector<std::string> adtLocationOutput)
 {
     NC_LOG_MESSAGE("Extracting ADTs...");
-    std::shared_ptr<MPQHandler> handler = ServiceLocator::GetMPQHandler();
-    std::filesystem::path outputPath = ServiceLocator::GetMapFolderPath();
+    std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
+    std::filesystem::path outputPath = fs::current_path().append("ExtractedData\\Maps");
 
-    MPQFile* file = nullptr;
     for (std::string adtName : adtLocationOutput)
     {
         bool createAdtDirectory = true;
-        std::filesystem::path adtPath = outputPath.string() + "/" + adtName;
+        std::filesystem::path adtPath = outputPath.string() + "\\" + adtName;
         if (std::filesystem::exists(adtPath))
         {
             // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
@@ -58,7 +57,7 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
         // WDT File
         filePathStream << "world\\maps\\" << adtName << "\\" << adtName << ".WDT";
 
-        std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
+        std::shared_ptr<ByteBuffer> file = handler->GetFile(filePathStream.str());
         if (!file)
             continue;
 
@@ -83,7 +82,7 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
             fileName = fileNameStream.str();
             filePathStream << "world\\maps\\" << adtName << "\\" << fileName << ".adt";
 
-            std::shared_ptr<MPQFile> file = handler->GetFile(filePathStream.str());
+            std::shared_ptr<ByteBuffer> file = handler->GetFile(filePathStream.str());
             assert(file); // If this file does not exist, something went very wrong
 
             if (createAdtDirectory)

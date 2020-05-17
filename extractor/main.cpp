@@ -1,17 +1,33 @@
 #include <NovusTypes.h>
 #include <fstream>
-#include "MPQ/MPQHandler.h"
+#include "MPQ/MPQLoader.h"
 #include "DBC/DBCLoader.h"
 #include "MAP/MAPLoader.h"
 #include "Utils/ServiceLocator.h"
 
 i32 main()
 {
-    std::shared_ptr<MPQHandler> mpqHandler = std::make_shared<MPQHandler>();
-    if (mpqHandler->Load())
-    {
-        ServiceLocator::SetMPQHandler(mpqHandler);
+    std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
+    std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
 
+    ServiceLocator::SetMPQLoader(mpqLoader);
+    ServiceLocator::SetDBCReader(dbcReader);
+
+    /* Runs and validaties all 280k files (3.3.5a)
+        mpqLoader->__Test__();
+
+        Example usage of GetFIle
+
+        std::string file = "Tileset\\Generic\\Black.blp";
+        std::shared_ptr<ByteBuffer> buffer = mpqLoader->GetFile(file);
+        if (buffer)
+        {
+        
+        }
+    */
+
+    if (mpqLoader->Load())
+    {
         // Create Output Folders
         {
             std::filesystem::path basePath = std::filesystem::current_path();
@@ -32,10 +48,6 @@ i32 main()
             {
                 std::filesystem::create_directory(mapFolderPath);
             }
-
-            ServiceLocator::SetBaseFolderPath(baseFolderPath);
-            ServiceLocator::SetSQLFolderPath(sqlFolderPath);
-            ServiceLocator::SetMapFolderPath(mapFolderPath);
         }
 
         std::vector<std::string> adtLocations;
@@ -47,7 +59,7 @@ i32 main()
         DBCLoader::LoadEmotesText();
         DBCLoader::LoadSpell();
 
-        mpqHandler->CloseAll();
+        mpqLoader->Close();
         NC_LOG_SUCCESS("Finished extracting all data");
     }
     else

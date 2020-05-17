@@ -24,7 +24,6 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
-#include "../MPQ/MPQFile.h"
 #include "ADTStructs.h"
 #include <vector>
 
@@ -83,12 +82,12 @@ struct MAIN
 class WDT
 {
 public:
-    WDT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath);
+    WDT(std::shared_ptr<ByteBuffer> file, std::string fileName, std::string filePath);
     std::vector<u32> Convert();
 
 private:
 
-    std::shared_ptr<MPQFile> _file;
+    std::shared_ptr<ByteBuffer> _file;
     std::string _fileName;
     std::string _filePath;
 };

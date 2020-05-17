@@ -1,31 +1,17 @@
 #include "ServiceLocator.h"
 #include <cassert>
 
-std::shared_ptr<MPQHandler> ServiceLocator::_mpqHandler = nullptr;
-std::filesystem::path ServiceLocator::_baseFolderPath;
-std::filesystem::path ServiceLocator::_sqlFolderPath;
-std::filesystem::path ServiceLocator::_mapFolderPath;
+std::shared_ptr<MPQLoader> ServiceLocator::_mpqLoader = nullptr;
+std::shared_ptr<DBCReader> ServiceLocator::_dbcReader = nullptr;
 
-void ServiceLocator::SetMPQHandler(std::shared_ptr<MPQHandler> mpqHandler)
+void ServiceLocator::SetMPQLoader(std::shared_ptr<MPQLoader> mpqLoader)
 {
-    assert(mpqHandler != nullptr);
-    _mpqHandler = mpqHandler;
+    assert(mpqLoader != nullptr);
+    _mpqLoader = mpqLoader;
 }
 
-void ServiceLocator::SetBaseFolderPath(std::filesystem::path baseFolderPath)
+void ServiceLocator::SetDBCReader(std::shared_ptr<DBCReader> dbcReader)
 {
-    assert(!baseFolderPath.empty());
-    _baseFolderPath = baseFolderPath;
-}
-
-void ServiceLocator::SetSQLFolderPath(std::filesystem::path sqlFolderPath)
-{
-    assert(!sqlFolderPath.empty());
-    _sqlFolderPath = sqlFolderPath;
-}
-
-void ServiceLocator::SetMapFolderPath(std::filesystem::path mapFolderPath)
-{
-    assert(!mapFolderPath.empty());
-    _mapFolderPath = mapFolderPath;
+    assert(dbcReader != nullptr);
+    _dbcReader = dbcReader;
 }

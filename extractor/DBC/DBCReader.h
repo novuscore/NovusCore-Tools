@@ -97,22 +97,11 @@ public:
     u32 GetNumFields() { return _fieldCount; }
     u8* GetStringTable() { return _stringTable; }
 
-    static DBCReader* GetReader()
-    {
-        if (_reader == nullptr)
-        {
-            _reader = new DBCReader();
-        }
-
-        return _reader;
-    }
-
 private:
     u32 _rowSize = 0;
     u32 _rowCount = 0;
     u32 _fieldCount = 0;
     u32 _stringSize = 0;
-    u8* _data = nullptr;
-    u8* _stringTable = nullptr;
-    static DBCReader* _reader;
+    u8* _data = nullptr; // Use Bytebuffer
+    u8* _stringTable = nullptr; // Use Bytebuffer
 };

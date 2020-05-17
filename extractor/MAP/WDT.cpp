@@ -1,7 +1,7 @@
 #include "WDT.h"
 #include <Utils/DebugHandler.h>
 
-WDT::WDT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePath)
+WDT::WDT(std::shared_ptr<ByteBuffer> file, std::string fileName, std::string filePath)
     : _file(file)
     , _fileName(fileName)
     , _filePath(filePath)
@@ -11,7 +11,7 @@ WDT::WDT(std::shared_ptr<MPQFile> file, std::string fileName, std::string filePa
 
 std::vector<u32> WDT::Convert()
 {
-    std::shared_ptr<ByteBuffer> buffer = _file->buffer;
+    std::shared_ptr<ByteBuffer>& buffer = _file;
 
     MVER mver;
     buffer->Get<MVER>(mver);

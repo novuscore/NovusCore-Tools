@@ -25,7 +25,6 @@
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
 #include "ADTStructs.h"
-#include "../MPQ/MPQFile.h"
 
 constexpr u16 CELL_OUTER_GRID_SIDE = 9;
 constexpr u16 CELL_OUTER_GRID_SIZE = CELL_OUTER_GRID_SIDE * CELL_OUTER_GRID_SIDE;
