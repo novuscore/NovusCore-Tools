@@ -27,71 +27,97 @@
 #include <sstream>
 #include "../Utils/ServiceLocator.h"
 
+#include "../FileChunk/ChunkLoader.h"
+#include "../FileChunk/Wrappers/WDT.h"
+#include "../FileChunk/Wrappers/ADT.h"
+
 namespace MapLoader
 {
     namespace fs = std::filesystem;
-void LoadMaps(std::vector<std::string> adtLocationOutput)
+void LoadMaps(std::vector<std::string> internalMapNames)
 {
     NC_LOG_MESSAGE("Extracting ADTs...");
-    std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
+    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
     std::filesystem::path outputPath = fs::current_path().append("ExtractedData/Maps");
 
-    for (std::string adtName : adtLocationOutput)
+    for (const std::string& internalName : internalMapNames)
     {
         bool createAdtDirectory = true;
-        std::filesystem::path adtPath = outputPath.string() + "/" + adtName;
+        std::filesystem::path adtPath = outputPath.string() + "/" + internalName;
         if (std::filesystem::exists(adtPath))
         {
             // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
             createAdtDirectory = false;
         }
 
-        NC_LOG_MESSAGE("Extracting %s", adtName.c_str());
+        NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
 
         std::string fileName = "";
         std::stringstream fileNameStream;
         std::stringstream filePathStream;
 
         // WDT File
-        filePathStream << "world\\maps\\" << adtName << "\\" << adtName << ".WDT";
+        filePathStream << "world\\maps\\" << internalName << "\\" << internalName << ".WDT";
 
-        std::shared_ptr<ByteBuffer> file = handler->GetFile(filePathStream.str());
-        if (!file)
+        std::shared_ptr<ByteBuffer> fileWDT = mpqLoader->GetFile(filePathStream.str());
+        if (!fileWDT)
             continue;
 
-        /*WDT mapWdt(file, adtName + ".wdt", adtPath.string());
-        std::vector<u32> adtsToRead = mapWdt.Convert();
-
-        filePathStream.clear();
-        filePathStream.str("");
-
-        for (u32 adt : adtsToRead)
+        WDT wdt;
+        if (!chunkLoader->LoadWDT(fileWDT, wdt))
         {
-            u32 x = adt % 64;
-            u32 y = adt / 64;
+            // This could happen, but for now I want to assert it in this test scenario
+            assert(false);
+        }
 
-            fileNameStream.clear();
-            fileNameStream.str("");
-
+        if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
+        {
             filePathStream.clear();
             filePathStream.str("");
 
-            fileNameStream << adtName << "_" << x << "_" << y;
-            fileName = fileNameStream.str();
-            filePathStream << "world\\maps\\" << adtName << "\\" << fileName << ".adt";
-
-            std::shared_ptr<ByteBuffer> file = handler->GetFile(filePathStream.str());
-            assert(file); // If this file does not exist, something went very wrong
-
-            if (createAdtDirectory)
+            ADT adt;
+            for (u32 i = 0; i < NUM_SM_AREA_INFO; i++)
             {
-                std::filesystem::create_directory(adtPath);
-                createAdtDirectory = false;
-            }
+                MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[i];
+                if (!areaInfo.hasADT)
+                    continue;
 
-            ADT mapAdt(file, fileName + ".nmap", adtPath.string());
-            mapAdt.Convert();
-        }*/
+                u32 x = i % 64;
+                u32 y = i / 64;
+
+                fileNameStream.clear();
+                fileNameStream.str("");
+
+                filePathStream.clear();
+                filePathStream.str("");
+
+                fileNameStream << internalName << "_" << x << "_" << y;
+                fileName = fileNameStream.str();
+                filePathStream << "world\\maps\\" << internalName << "\\" << fileName << ".adt";
+
+                std::shared_ptr<ByteBuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
+                assert(fileADT); // If this file does not exist, something went very wrong
+
+                if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                {
+                    // This could happen, but for now I want to assert it in this test scenario
+                    assert(false);
+                }
+
+                if (createAdtDirectory)
+                {
+                    std::filesystem::create_directory(adtPath);
+                    createAdtDirectory = false;
+                }
+
+                // Extract data we want into our own format and then write adt to disk
+            }
+        }
+        else
+        {
+            // Here we have a map with just a global map object
+        }
     }
 
     return;

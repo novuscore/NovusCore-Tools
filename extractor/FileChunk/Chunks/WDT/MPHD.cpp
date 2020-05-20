@@ -9,8 +9,6 @@ bool MPHD::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
         return false;
     }
 
-    wdt.hasBigAlpha = ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::AdtHasBigAlpha)) == 1 ||
-                       (wdt.mphd.flags & static_cast<u32>(MPHDFlags::AdtHasHeightTexturing)) == 1);
-
+    wdt.hasBigAlpha = (wdt.mphd.flags & static_cast<u32>(MPHDFlags::AdtHasBigAlpha));
     return true;
 }

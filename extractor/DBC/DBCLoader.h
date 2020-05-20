@@ -25,13 +25,14 @@
 #include <Utils/DebugHandler.h>
 #include <Utils/StringUtils.h>
 #include <sstream>
+#include <fstream>
 #include "DBCReader.h"
 #include "DBCStructures.h"
 #include "../Utils/ServiceLocator.h"
 
 namespace DBCLoader
 {
-    bool LoadMap(std::vector<std::string>& adtLocationOutput)
+    bool LoadMap(std::vector<std::string>& internalMapNames)
     {
         std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
 
@@ -64,7 +65,8 @@ namespace DBCLoader
 
             DBCMap map;
             map.Id = row.GetUInt32(0);
-            map.InternalName = StringUtils::EscapeString(row.GetString(row.GetUInt32(1)));
+            std::string internalMapName = row.GetString(row.GetUInt32(1));
+            map.InternalName = StringUtils::EscapeString(internalMapName);
             map.InstanceType = row.GetUInt32(2);
             map.Flags = row.GetUInt32(3);
             map.Name = StringUtils::EscapeString(row.GetString(row.GetUInt32(5)));
@@ -73,7 +75,7 @@ namespace DBCLoader
 
             // MapFlag 2, seem to be exclusive to Test / Development Maps
             if ((map.Flags & 2) == 0)
-                adtLocationOutput.push_back(row.GetString(row.GetUInt32(1)));
+                internalMapNames.push_back(internalMapName);
 
             if (i != 0)
                 ss << ", ";

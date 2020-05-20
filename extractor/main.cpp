@@ -1,13 +1,9 @@
 #include <NovusTypes.h>
-#include <fstream>
 #include "MPQ/MPQLoader.h"
 #include "DBC/DBCLoader.h"
 #include "MAP/MAPLoader.h"
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
-
-#include "FileChunk/Wrappers/WDT.h"
-#include "FileChunk/Wrappers/ADT.h"
 
 i32 main()
 {
@@ -16,6 +12,7 @@ i32 main()
     std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
 
     ServiceLocator::SetMPQLoader(mpqLoader);
+    ServiceLocator::SetChunkLoader(chunkLoader);
     ServiceLocator::SetDBCReader(dbcReader);
 
     /* Runs and validaties all 280k files (3.3.5a)
@@ -78,14 +75,14 @@ i32 main()
         }
         */
 
-        /*std::vector<std::string> adtLocations;
-        if (DBCLoader::LoadMap(adtLocations))
+        std::vector<std::string> internalMapNames;
+        if (DBCLoader::LoadMap(internalMapNames))
         {
-            MapLoader::LoadMaps(adtLocations);
+            MapLoader::LoadMaps(internalMapNames);
         }
 
         DBCLoader::LoadEmotesText();
-        DBCLoader::LoadSpell();*/
+        DBCLoader::LoadSpell();
 
         mpqLoader->Close();
         NC_LOG_SUCCESS("Finished extracting all data");

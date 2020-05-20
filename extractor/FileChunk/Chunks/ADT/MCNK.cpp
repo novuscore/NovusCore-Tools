@@ -40,10 +40,13 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                     return false;
                 }
 
-                if (!buffer->Get(cell.mcvt, cell.mcnk.offsetMCVT + 8))
+                if (mcvtHeader.size > 0)
                 {
-                    assert(false);
-                    return false;
+                    if (!buffer->Get(cell.mcvt, cell.mcnk.offsetMCVT + 8))
+                    {
+                        assert(false);
+                        return false;
+                    }
                 }
             }
 
@@ -65,10 +68,13 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                     return false;
                 }
 
-                if (!buffer->Get(cell.mcnr, cell.mcnk.offsetMCNR + 8))
+                if (mcnrHeader.size > 0)
                 {
-                    assert(false);
-                    return false;
+                    if (!buffer->Get(cell.mcnr, cell.mcnk.offsetMCNR + 8))
+                    {
+                        assert(false);
+                        return false;
+                    }
                 }
             }
         }
@@ -193,7 +199,7 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                     if (wdt.hasBigAlpha)
                     {
                         // Check if compression is used (Compression is only used for Big Alpha)
-                        if ((mcly.flags & static_cast<u32>(MCLYFlags::CompressedAlphaMap)) == 1)
+                        if ((mcly.flags & static_cast<u32>(MCLYFlags::CompressedAlphaMap)))
                         {
                             u8* alphaMap = &buffer->GetDataPointer()[cell.mcnk.offsetMCAL + 8 + mcly.offsetInMCAL];
                             u32 offsetIn = 0;
@@ -222,6 +228,16 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                                 if (fill)
                                     offsetIn += 1;
                             }
+
+                            u8 buffer[4096 * 3] = { 0 };
+                            u32 offsetOutt = 0;
+
+                            for (u32 j = 0; j < 4096; j++)
+                            {
+                                buffer[offsetOutt++] = mcal.alphaMap[j];
+                                buffer[offsetOutt++] = mcal.alphaMap[j];
+                                buffer[offsetOutt++] = mcal.alphaMap[j];
+                            }
                         }
                         else
                         {
@@ -247,15 +263,18 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                         u16 offsetOut = 0;
                         for (u16 j = 0; j < 2048; j++)
                         {
-                            u8 firstVal = alphaMap[j] & 0xE6;
-                            u8 secondVal = alphaMap[j] & 0xF;
+                            u8 firstVal = alphaMap[j] & 0xF;
+                            u8 secondVal = (alphaMap[j] & 0xF0) >> 4;
+
+                            firstVal *= 255 / 15;
+                            secondVal *= 255 / 15;
 
                             mcal.alphaMap[offsetOut++] = firstVal;
                             mcal.alphaMap[offsetOut++] = secondVal;
                         }
 
                         // Check if we have to fix the alpha map
-                        if ((cell.mcnk.flags & static_cast<u32>(MCNKFlags::DoNotFixAlphaMap)) == 0)
+                        if (!(cell.mcnk.flags & static_cast<u32>(MCNKFlags::DoNotFixAlphaMap)))
                         {
                             // Fix last column for every row but the last
                             for (u16 j = 0; j < 4032; j += 64)
@@ -278,7 +297,7 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
             }
         }
 
-        if (cell.mcnk.offsetMCSH && (cell.mcnk.flags & static_cast<u32>(MCNKFlags::HasMCSH)) == 1)
+        if (cell.mcnk.offsetMCSH && (cell.mcnk.flags & static_cast<u32>(MCNKFlags::HasMCSH)))
         {
             cell.mcnk.offsetMCSH += parentOffset;
 
@@ -296,27 +315,30 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                 return false;
             }
 
-            if (!buffer->Get(cell.mcsh, cell.mcnk.offsetMCSH + 8))
+            if (mcshHeader.size > 0)
             {
-                assert(false);
-                return false;
-            }
-
-            // Check if we have to fix the shadow map
-            if ((cell.mcnk.flags & static_cast<u32>(MCNKFlags::DoNotFixAlphaMap)) == 0)
-            {
-                // This is packed as 8x8 u8s
-                for (int i = 0; i < 7; i++)
+                if (!buffer->Get(cell.mcsh, cell.mcnk.offsetMCSH + 8))
                 {
-                    u8 byte = cell.mcsh.bitMask[i][6];
-                    cell.mcsh.bitMask[i][7] = byte;
+                    assert(false);
+                    return false;
                 }
 
-                // Correct the last row
-                for (int j = 0; j < 8; j++)
+                // Check if we have to fix the shadow map
+                if ((cell.mcnk.flags & static_cast<u32>(MCNKFlags::DoNotFixAlphaMap)) == 0)
                 {
-                    u8 byte = cell.mcsh.bitMask[6][j];
-                    cell.mcsh.bitMask[7][j] = byte;
+                    // This is packed as 8x8 u8s
+                    for (int i = 0; i < 7; i++)
+                    {
+                        u8 byte = cell.mcsh.bitMask[i][6];
+                        cell.mcsh.bitMask[i][7] = byte;
+                    }
+
+                    // Correct the last row
+                    for (int j = 0; j < 8; j++)
+                    {
+                        u8 byte = cell.mcsh.bitMask[6][j];
+                        cell.mcsh.bitMask[7][j] = byte;
+                    }
                 }
             }
         }
@@ -375,10 +397,13 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                 return false;
             }
 
-            if (!buffer->Get(cell.mclq, cell.mcnk.offsetMCLQ + 8))
+            if (mclqHeader.size > 0)
             {
-                assert(false);
-                return false;
+                if (!buffer->Get(cell.mclq, cell.mcnk.offsetMCLQ + 8))
+                {
+                    assert(false);
+                    return false;
+                }
             }
         }
 
@@ -400,10 +425,13 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                 return false;
             }
 
-            if (!buffer->Get(cell.mccv, cell.mcnk.offsetMCCV + 8))
+            if (mccvHeader.size > 0)
             {
-                assert(false);
-                return false;
+                if (!buffer->Get(cell.mccv, cell.mcnk.offsetMCCV + 8))
+                {
+                    assert(false);
+                    return false;
+                }
             }
         }
 
