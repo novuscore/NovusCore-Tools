@@ -228,16 +228,6 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                                 if (fill)
                                     offsetIn += 1;
                             }
-
-                            u8 buffer[4096 * 3] = { 0 };
-                            u32 offsetOutt = 0;
-
-                            for (u32 j = 0; j < 4096; j++)
-                            {
-                                buffer[offsetOutt++] = mcal.alphaMap[j];
-                                buffer[offsetOutt++] = mcal.alphaMap[j];
-                                buffer[offsetOutt++] = mcal.alphaMap[j];
-                            }
                         }
                         else
                         {
