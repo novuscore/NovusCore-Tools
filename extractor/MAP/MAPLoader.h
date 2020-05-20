@@ -25,8 +25,6 @@
 #include <Utils/DebugHandler.h>
 #include <filesystem>
 #include <sstream>
-#include "ADT.h"
-#include "WDT.h"
 #include "../Utils/ServiceLocator.h"
 
 namespace MapLoader
@@ -36,12 +34,12 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
 {
     NC_LOG_MESSAGE("Extracting ADTs...");
     std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
-    std::filesystem::path outputPath = fs::current_path().append("ExtractedData\\Maps");
+    std::filesystem::path outputPath = fs::current_path().append("ExtractedData/Maps");
 
     for (std::string adtName : adtLocationOutput)
     {
         bool createAdtDirectory = true;
-        std::filesystem::path adtPath = outputPath.string() + "\\" + adtName;
+        std::filesystem::path adtPath = outputPath.string() + "/" + adtName;
         if (std::filesystem::exists(adtPath))
         {
             // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
@@ -61,7 +59,7 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
         if (!file)
             continue;
 
-        WDT mapWdt(file, adtName + ".wdt", adtPath.string());
+        /*WDT mapWdt(file, adtName + ".wdt", adtPath.string());
         std::vector<u32> adtsToRead = mapWdt.Convert();
 
         filePathStream.clear();
@@ -93,7 +91,7 @@ void LoadMaps(std::vector<std::string> adtLocationOutput)
 
             ADT mapAdt(file, fileName + ".nmap", adtPath.string());
             mapAdt.Convert();
-        }
+        }*/
     }
 
     return;
