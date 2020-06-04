@@ -16,6 +16,8 @@
 #include "../Chunks/ADT/MCNK.h"
 #include "../Chunks/ADT/MapCell.h"
 
+class MPQFileJobBatch;
+
 struct ADT
 {
     MVER mver;
@@ -32,4 +34,6 @@ struct ADT
     MH2O mh2o;
     std::vector<MTXF> mtxfs;
     std::vector<MapCellInfo> cells;
+
+    void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);
 };

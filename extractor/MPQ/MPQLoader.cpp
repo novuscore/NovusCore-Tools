@@ -1,8 +1,37 @@
 #include "MPQLoader.h"
 #include <cassert>
 #include <filesystem>
+#include <chrono>
 
 namespace fs = std::filesystem;
+
+MPQLoader::MPQLoader()
+{
+    _archives.reserve(18);
+    _isRunning = true;
+
+    // Start all our worker threads
+    for (std::thread& workerThread : _workerThreads)
+    {
+        workerThread = std::thread([this]()
+        {
+            WorkerThread();
+        });
+    }
+}
+
+MPQLoader::~MPQLoader()
+{
+    // Stop all our worker threads
+    _isRunning = false;
+
+    // Wait for the worker threads to stop
+    for (std::thread& workerThread : _workerThreads)
+    {
+        workerThread.join();
+    }
+}
+
 bool MPQLoader::Load()
 {
     fs::path dataPath = fs::current_path().append("Data");
@@ -172,6 +201,15 @@ std::shared_ptr<ByteBuffer> MPQLoader::GetFile(std::string_view file)
     return buffer;
 }
 
+void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<ByteBuffer>)> callback)
+{
+    FileJob fileJob;
+    fileJob.filePath = file;
+    fileJob.callback = callback;
+
+    _fileJobs.enqueue(fileJob);
+}
+
 void MPQLoader::__Test__()
 {
     std::shared_ptr<ByteBuffer> buffer = nullptr;
@@ -193,5 +231,46 @@ void MPQLoader::__Test__()
             }
 
         } while (SFileFindNextFile(searchHandle, &data));
+    }
+}
+
+void MPQLoader::WorkerThread()
+{
+    u32 emptyCount = 0;
+    FileJob fileJob;
+
+    while (_isRunning)
+    {
+        bool hadJob = _fileJobs.try_dequeue(fileJob);
+
+        if (hadJob)
+        {
+            emptyCount = 0;
+
+            std::shared_ptr<ByteBuffer> byteBuffer = GetFile(fileJob.filePath);
+            fileJob.callback(byteBuffer);
+        }
+        else
+        {
+            emptyCount++;
+
+            // If we have over 100 tries with an empty queue, we try 10 times per second
+            if (emptyCount > 100)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+            // If we have over 15 tries with an empty queue, we try 50 times per second
+            else if (emptyCount > 15)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            }
+            // Else we try 200 times per second
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+        }
+
+
     }
 }

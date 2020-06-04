@@ -30,6 +30,8 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY CXX_STANDARD 17)
 
 find_assign_files(${DATAEXTRACTOR_FILES})
 
+include_directories(../dep/NvidiaTextureTools/src)
+
 if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE c++fs)
 elseif (UNIX)
@@ -41,6 +43,7 @@ add_compile_definitions(NOMINMAX _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
 target_link_libraries(${PROJECT_NAME} PRIVATE
     common::common
     stormlib::stormlib
+    nvtt
 )
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

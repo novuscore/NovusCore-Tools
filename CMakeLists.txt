@@ -37,3 +37,4 @@ set(ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(converter)
 add_subdirectory(extractor)
+add_subdirectory(dep)

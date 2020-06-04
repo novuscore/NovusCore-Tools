@@ -1,7 +1,7 @@
 ﻿/*
     MIT License
 
-    Copyright (c) 2018-2019 NovusCore
+    Copyright (c) 2018-2020 NovusCore
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,6 @@
 */
 #pragma once
 #include <NovusTypes.h>
-#include <Utils/ByteBuffer.h>
-#include "ADTStructs.h"
 
 constexpr u16 CELL_OUTER_GRID_SIDE = 9;
 constexpr u16 CELL_OUTER_GRID_SIZE = CELL_OUTER_GRID_SIDE * CELL_OUTER_GRID_SIDE;
@@ -47,7 +45,13 @@ struct LiquidData
     f32 level = 20000;
     u32 layers = 0;
     f32 liquidHeight = 0;
-};  
+};
+
+constexpr u32 TextureIdInvalid = 9999;
+struct LayerData
+{
+    u32 textureId = TextureIdInvalid;
+};
 
 struct Cell
 {
@@ -58,5 +62,7 @@ struct Cell
     LiquidData liquidData;
 
     u16 hole = 0;
+
+    LayerData layers[4];
 };
 #pragma pack(pop)

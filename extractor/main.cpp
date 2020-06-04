@@ -9,6 +9,7 @@ i32 main()
 {
     std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
     std::shared_ptr<ChunkLoader> chunkLoader = std::make_shared<ChunkLoader>();
+    std::shared_ptr<MapLoader> mapLoader = std::make_shared<MapLoader>();
     std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
 
     ServiceLocator::SetMPQLoader(mpqLoader);
@@ -78,7 +79,7 @@ i32 main()
         std::vector<std::string> internalMapNames;
         if (DBCLoader::LoadMap(internalMapNames))
         {
-            MapLoader::LoadMaps(internalMapNames);
+            mapLoader->LoadMaps(internalMapNames);
         }
 
         DBCLoader::LoadEmotesText();

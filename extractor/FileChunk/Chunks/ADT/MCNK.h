@@ -2,7 +2,7 @@
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
 
-enum class MCNKFlags
+enum MCNKFlags
 {
     HasMCSH             = 1 << 0,
     Impass              = 1 << 1,
@@ -26,8 +26,8 @@ struct ChunkHeader;
 struct MCNK
 {
     u32 flags = 0;
-    u32 posX = 0;
-    u32 posY = 0;
+    u32 indexX = 0;
+    u32 indexY = 0;
     u32 numLayers = 0;
     u32 numDoodadRefs = 0;
 
