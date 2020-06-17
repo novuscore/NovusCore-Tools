@@ -51,6 +51,11 @@ struct HeightBox
     HeightPlane maxHeight;
 };
 
+struct AlphaMap
+{
+    u8 alphaMap[4096] = { 0 }; // 4096 pixels per alpha map
+};
+
 struct Chunk
 {
     ChunkHeader chunkHeader;
@@ -59,5 +64,6 @@ struct Chunk
     HeightBox heightBox;
 
     Cell cells[MAP_CELLS_PER_CHUNK];
+    std::vector<AlphaMap> alphaMaps[MAP_CELLS_PER_CHUNK];
 };
 #pragma pack(pop)

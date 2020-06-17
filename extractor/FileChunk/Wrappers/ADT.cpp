@@ -14,7 +14,10 @@ namespace fs = std::filesystem;
 void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 {
     // We want to convert the ADT to a Chunk and save it to disk
-    Chunk chunk;
+    static Chunk* chunkTemplate = new Chunk(); // Don't change this one, we will use it in a memcpy to "reset" chunk
+    static Chunk* chunk = new Chunk();
+
+    memcpy(chunk, chunkTemplate, sizeof(Chunk));
     
     // The ADT should always have 256 cells
     assert(cells.size() == 256);
@@ -47,10 +50,10 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 
             cell.heightData[j] = height;
 
-            if (height < chunk.heightHeader.gridMinHeight)
-                chunk.heightHeader.gridMinHeight = height;
-            if (height > chunk.heightHeader.gridMaxHeight)
-                chunk.heightHeader.gridMaxHeight = height;
+            if (height < chunk->heightHeader.gridMinHeight)
+                chunk->heightHeader.gridMinHeight = height;
+            if (height > chunk->heightHeader.gridMaxHeight)
+                chunk->heightHeader.gridMaxHeight = height;
         }
 
         // Layers
@@ -72,10 +75,34 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
             // Store the stringTableIndex in the cell
             cell.layers[j].textureId = stringTableIndex;
 
-            // TODO: Alpha maps, Specular etc
+            if (j > 0)
+            {
+                AlphaMap alphaMap;
+                memcpy(&alphaMap.alphaMap, &cells[i].mcals[j-1].alphaMap, 4096);
+                chunk->alphaMaps[i].push_back(alphaMap);
+            }
         }
 
-        chunk.cells[i] = cell;
+        // TODO: Possibly merge alphamaps like below, compress as DDS and append to .nmap?
+        // Merge all layers alphamap into one array
+        // Red channel maps to layer[1], Green channel maps to layer[2], Blue channel maps to layer[3]
+        /*if (numLayers > 1)
+        {
+            
+            for (u32 pixel = 0; pixel < 4096; pixel++)
+            {
+                for (u32 channel = 1; channel < numLayers; channel++)
+                {
+                    u32 dst = (pixel * 3) + (channel - 1);
+
+                    cell.alphaMap.alphaMap[dst] = cells[i].mcals[channel - 1].alphaMap[pixel];
+                }
+            }
+        }*/
+        
+        // TODO: Specular?
+
+        chunk->cells[i] = cell;
     }
 
     // Extract all textures referenced by this ADT
@@ -140,7 +167,35 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
     }
 
     // Write the Chunk to file
-    output.write(reinterpret_cast<char const*>(&chunk), sizeof(Chunk));
+    //output.write(reinterpret_cast<char const*>(chunk), sizeof(Chunk)); // Old way of doing it, remove once we know we like it this way
+
+    output.write(reinterpret_cast<char const*>(&chunk->chunkHeader), sizeof(chunk->chunkHeader));
+    output.write(reinterpret_cast<char const*>(&chunk->heightHeader), sizeof(chunk->heightHeader));
+    output.write(reinterpret_cast<char const*>(&chunk->heightBox), sizeof(chunk->heightBox));
+
+    for (u32 i = 0; i < MAP_CELLS_PER_CHUNK; i++)
+    {
+        output.write(reinterpret_cast<char const*>(&chunk->cells[i]), sizeof(chunk->cells[i])); // Write cell
+
+        u32 numAlphaMaps = static_cast<u32>(chunk->alphaMaps[i].size());
+        output.write(reinterpret_cast<char const*>(&numAlphaMaps), sizeof(u32)); // Write number of alpha maps
+        if (numAlphaMaps > 0)
+        {
+            output.write(reinterpret_cast<char const*>(chunk->alphaMaps[i].data()), sizeof(AlphaMap)* numAlphaMaps); // Write alpha maps
+        }
+    }
+
+    /*for (Cell& cell : chunk->cells)
+    {
+        output.write(reinterpret_cast<char const*>(&cell.data), sizeof(cell.data)); // Write cell data
+
+        u32 numAlphaMaps = static_cast<u32>(cell.alphaMaps.size());
+        output.write(reinterpret_cast<char const*>(&numAlphaMaps), sizeof(u32)); // Write number of alpha maps
+        if (numAlphaMaps > 0)
+        {
+            output.write(reinterpret_cast<char const*>(cell.alphaMaps.data()), sizeof(AlphaMap)* numAlphaMaps); // Write alpha maps
+        }
+    }*/
 
     // Serialize our StringTable and write it to the file
     std::shared_ptr<ByteBuffer> stringTableByteBuffer = ByteBuffer::Borrow<1048576>();
