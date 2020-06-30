@@ -2,6 +2,7 @@
 #include "MPQ/MPQLoader.h"
 #include "DBC/DBCLoader.h"
 #include "MAP/MAPLoader.h"
+#include "Interface/InterfaceLoader.h"
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
 
@@ -84,7 +85,8 @@ i32 main()
 
         DBCLoader::LoadEmotesText();
         DBCLoader::LoadSpell();
-
+        InterfaceLoader::LoadInterface();
+       
         mpqLoader->Close();
         NC_LOG_SUCCESS("Finished extracting all data");
     }

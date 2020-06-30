@@ -210,6 +210,23 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
     _fileJobs.enqueue(fileJob);
 }
 
+void MPQLoader::GetFirstFile(std::string pattern, std::function<void(std::string)> callback)
+{
+    for (void* archive : _archives)
+    {
+        SFILE_FIND_DATA data;
+
+        void* searchHandle = SFileFindFirstFile(archive, pattern.c_str(), &data, nullptr);
+        if (!searchHandle)
+            continue;
+
+        do
+        {
+            callback(data.cFileName);
+        } while (SFileFindNextFile(searchHandle, &data));
+    }
+}
+
 void MPQLoader::__Test__()
 {
     std::shared_ptr<Bytebuffer> buffer = nullptr;
