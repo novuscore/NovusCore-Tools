@@ -3,10 +3,10 @@
 #include "../../Wrappers/WDT.h"
 #include "../../Wrappers/ADT.h"
 
-bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MCNK::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     // The offsets to Sub Chunks in the MCNK is relative to the start of it's own header and not to the data (This is the reason we subtract 8)
-    u32 parentOffset = static_cast<u32>(buffer->ReadData) - 8;
+    u32 parentOffset = static_cast<u32>(buffer->readData) - 8;
 
     if (adt.cells.size() == 0)
         adt.cells.reserve(256);
@@ -253,14 +253,16 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
                         u16 offsetOut = 0;
                         for (u16 j = 0; j < 2048; j++)
                         {
-                            u8 firstVal = alphaMap[j] & 0xF;
-                            u8 secondVal = (alphaMap[j] & 0xF0) >> 4;
+                            u8 alpha = alphaMap[j];
 
-                            firstVal *= 255 / 15;
-                            secondVal *= 255 / 15;
+                            f32 firstVal = static_cast<f32>(alpha & 0xF);
+                            f32 secondVal = static_cast<f32>(alpha >> 4);
 
-                            mcal.alphaMap[offsetOut++] = firstVal;
-                            mcal.alphaMap[offsetOut++] = secondVal;
+                            firstVal = (firstVal / 15.0f) * 255.0f;
+                            secondVal = (secondVal / 15.0f) * 255.0f;
+
+                            mcal.alphaMap[offsetOut++] = static_cast<u8>(firstVal);
+                            mcal.alphaMap[offsetOut++] = static_cast<u8>(secondVal);
                         }
 
                         // Check if we have to fix the alpha map
@@ -433,6 +435,6 @@ bool MCNK::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
     adt.cells.push_back(cell);
 
     size_t extraDataSize = header.size - sizeof(MCNK);
-    buffer->ReadData += extraDataSize;
+    buffer->readData += extraDataSize;
     return true;
 }

@@ -20,6 +20,6 @@ struct MTXF
 {
     u32 flags = 0;
 
-    static bool Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
+    static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };
 #pragma pack(pop)

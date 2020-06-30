@@ -2,7 +2,7 @@
 #include "../Wrappers/WDT.h"
 #include "../Wrappers/ADT.h"
 
-bool MVER::ReadWDT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt)
+bool MVER::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
     if (!buffer->Get(wdt.mver))
     {
@@ -12,7 +12,7 @@ bool MVER::ReadWDT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& heade
 
     return true;
 }
-bool MVER::ReadADT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MVER::ReadADT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     if (!buffer->Get(adt.mver))
     {

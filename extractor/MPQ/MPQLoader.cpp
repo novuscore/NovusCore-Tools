@@ -163,9 +163,9 @@ void* MPQLoader::HasFile(std::string_view file)
 
     return false;
 }
-std::shared_ptr<ByteBuffer> MPQLoader::GetFile(std::string_view file)
+std::shared_ptr<Bytebuffer> MPQLoader::GetFile(std::string_view file)
 {
-    std::shared_ptr<ByteBuffer> buffer = nullptr;
+    std::shared_ptr<Bytebuffer> buffer = nullptr;
 
     void* archive = HasFile(file);
     if (!archive)
@@ -184,9 +184,9 @@ std::shared_ptr<ByteBuffer> MPQLoader::GetFile(std::string_view file)
     }
 
     // Potentially manually allocate if we find filesize to be bigger than 200MB
-    buffer = ByteBuffer::Borrow<209715200>();
-    assert(static_cast<size_t>(fileSize) < buffer->Size);
-    buffer->Size = static_cast<size_t>(fileSize);
+    buffer = Bytebuffer::Borrow<209715200>();
+    assert(static_cast<size_t>(fileSize) < buffer->size);
+    buffer->size = static_cast<size_t>(fileSize);
 
     DWORD numBytesRead = 0;
     bool fileRead = SFileReadFile(filePtr, buffer->GetDataPointer(), fileSize, &numBytesRead, nullptr);
@@ -194,14 +194,14 @@ std::shared_ptr<ByteBuffer> MPQLoader::GetFile(std::string_view file)
 
     if (fileRead)
     {
-        buffer->WrittenData = static_cast<size_t>(numBytesRead);
-        assert(buffer->WrittenData == buffer->Size);
+        buffer->writtenData = static_cast<size_t>(numBytesRead);
+        assert(buffer->writtenData == buffer->size);
     }
 
     return buffer;
 }
 
-void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<ByteBuffer>)> callback)
+void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<Bytebuffer>)> callback)
 {
     FileJob fileJob;
     fileJob.filePath = file;
@@ -212,7 +212,7 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
 
 void MPQLoader::__Test__()
 {
-    std::shared_ptr<ByteBuffer> buffer = nullptr;
+    std::shared_ptr<Bytebuffer> buffer = nullptr;
 
     for (void* archive : _archives)
     {
@@ -224,7 +224,7 @@ void MPQLoader::__Test__()
 
         do
         {
-            std::shared_ptr<ByteBuffer>& buffer = GetFile(data.cFileName);
+            std::shared_ptr<Bytebuffer>& buffer = GetFile(data.cFileName);
             if (!buffer)
             {
                 assert(false);
@@ -247,7 +247,7 @@ void MPQLoader::WorkerThread()
         {
             emptyCount = 0;
 
-            std::shared_ptr<ByteBuffer> byteBuffer = GetFile(fileJob.filePath);
+            std::shared_ptr<Bytebuffer> byteBuffer = GetFile(fileJob.filePath);
             fileJob.callback(byteBuffer);
         }
         else

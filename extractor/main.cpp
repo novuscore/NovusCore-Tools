@@ -22,7 +22,7 @@ i32 main()
         Example usage of GetFIle
 
         std::string file = "Tileset\\Generic\\Black.blp";
-        std::shared_ptr<ByteBuffer> buffer = mpqLoader->GetFile(file);
+        std::shared_ptr<Bytebuffer> buffer = mpqLoader->GetFile(file);
         if (buffer)
         {
         
@@ -54,7 +54,7 @@ i32 main()
         }
 
         /* Example usage code for the new mpqloader & chunkloader
-        std::shared_ptr<ByteBuffer> fileWDT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth.wdt");
+        std::shared_ptr<Bytebuffer> fileWDT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth.wdt");
 
         WDT wdt;
         if (!chunkLoader->LoadWDT(fileWDT, wdt))
@@ -66,7 +66,7 @@ i32 main()
         // Check if we should load ADTs (If the given flag is set, a single map object is used instead
         if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
         {
-            std::shared_ptr<ByteBuffer> fileADT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth_29_30.adt");
+            std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth_29_30.adt");
             ADT adt;
             if (!chunkLoader->LoadADT(fileADT, wdt, adt))
             {

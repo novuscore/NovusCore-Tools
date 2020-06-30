@@ -14,7 +14,7 @@ class MPQLoader
     struct FileJob
     {
         std::string filePath;
-        std::function<void(std::shared_ptr<ByteBuffer>)> callback;
+        std::function<void(std::shared_ptr<Bytebuffer>)> callback;
     };
 
 public:
@@ -27,8 +27,8 @@ public:
     // Returns nullptr if no file was found and returns the pointer to the Archive the file is in if found
     void* HasFile(std::string_view file);
 
-    std::shared_ptr<ByteBuffer> GetFile(std::string_view file);
-    void GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<ByteBuffer>)> callback);
+    std::shared_ptr<Bytebuffer> GetFile(std::string_view file);
+    void GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<Bytebuffer>)> callback);
 
     void __Test__();
 

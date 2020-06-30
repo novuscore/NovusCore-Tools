@@ -31,7 +31,7 @@ struct MODF
     u16 nameSet = 0;
     u16 scale = 0;
 
-    static bool ReadWDT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt);
-    static bool ReadADT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
+    static bool ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt);
+    static bool ReadADT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };
 #pragma pack(pop)

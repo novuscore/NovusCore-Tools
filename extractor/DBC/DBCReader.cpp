@@ -6,7 +6,7 @@
 	3 = Invalid data / string size read
 */
 
-int DBCReader::Load(std::shared_ptr<ByteBuffer> buffer)
+int DBCReader::Load(std::shared_ptr<Bytebuffer> buffer)
 {
     u32 header = 0;
     buffer->GetU32(header);

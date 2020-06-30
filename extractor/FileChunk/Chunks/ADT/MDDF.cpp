@@ -2,7 +2,7 @@
 #include "../ChunkHeader.h"
 #include "../../Wrappers/ADT.h"
 
-bool MDDF::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MDDF::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     size_t num = header.size / sizeof(MDDF);
     if (num == 0)

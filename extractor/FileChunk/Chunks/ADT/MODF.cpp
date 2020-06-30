@@ -3,7 +3,7 @@
 #include "../../Wrappers/WDT.h"
 #include "../../Wrappers/ADT.h"
 
-bool MODF::ReadWDT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt)
+bool MODF::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
     if (!buffer->Get(wdt.modf))
     {
@@ -14,7 +14,7 @@ bool MODF::ReadWDT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& heade
     return true;
 }
 
-bool MODF::ReadADT(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MODF::ReadADT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     size_t num = header.size / sizeof(MODF);
     if (num == 0)

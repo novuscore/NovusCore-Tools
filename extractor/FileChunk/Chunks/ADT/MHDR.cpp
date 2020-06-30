@@ -1,9 +1,9 @@
 #include "MHDR.h"
 #include "../../Wrappers/ADT.h"
 
-bool MHDR::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MHDR::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
-    u32 parentOffset = static_cast<u32>(buffer->ReadData);
+    u32 parentOffset = static_cast<u32>(buffer->readData);
     if (!buffer->Get(adt.mhdr))
     {
         assert(false);

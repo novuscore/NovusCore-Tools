@@ -37,7 +37,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
         // WDT File
         filePathStream << "world\\maps\\" << internalName << "\\" << internalName << ".WDT";
 
-        std::shared_ptr<ByteBuffer> fileWDT = mpqLoader->GetFile(filePathStream.str());
+        std::shared_ptr<Bytebuffer> fileWDT = mpqLoader->GetFile(filePathStream.str());
         if (!fileWDT)
             continue;
 
@@ -72,7 +72,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
                 fileName = fileNameStream.str();
                 filePathStream << "world\\maps\\" << internalName << "\\" << fileName << ".adt";
 
-                std::shared_ptr<ByteBuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
+                std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
                 assert(fileADT); // If this file does not exist, something went very wrong
 
                 ADT adt;

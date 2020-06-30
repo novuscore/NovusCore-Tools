@@ -16,7 +16,7 @@ struct MH2O
         u32 attributesOffset = 0;
     } liquidChunks[16*16];
 
-    static bool Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
+    static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };
 
 struct MH2O_LiquidInstance

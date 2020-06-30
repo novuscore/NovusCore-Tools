@@ -2,7 +2,7 @@
 #include "../ChunkHeader.h"
 #include "../../Wrappers/ADT.h"
 
-bool MTXF::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MTXF::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     size_t num = header.size / sizeof(MTXF);
     if (num == 0)

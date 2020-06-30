@@ -32,7 +32,7 @@ ChunkLoader::ChunkLoader()
     };
 }
 
-bool ChunkLoader::LoadWDT(std::shared_ptr<ByteBuffer>& buffer, WDT& wdt)
+bool ChunkLoader::LoadWDT(std::shared_ptr<Bytebuffer>& buffer, WDT& wdt)
 {
     ChunkHeader header;
     do
@@ -56,12 +56,12 @@ bool ChunkLoader::LoadWDT(std::shared_ptr<ByteBuffer>& buffer, WDT& wdt)
             assert(false);
         }
 
-    } while (buffer->ReadData != buffer->Size);
+    } while (buffer->readData != buffer->size);
 
 
     return true;
 }
-bool ChunkLoader::LoadADT(std::shared_ptr<ByteBuffer>& buffer, const WDT& wdt, ADT& adt)
+bool ChunkLoader::LoadADT(std::shared_ptr<Bytebuffer>& buffer, const WDT& wdt, ADT& adt)
 {
     ChunkHeader header;
     do
@@ -85,7 +85,7 @@ bool ChunkLoader::LoadADT(std::shared_ptr<ByteBuffer>& buffer, const WDT& wdt, A
             assert(false);
         }
 
-    } while (buffer->ReadData != buffer->Size);
+    } while (buffer->readData != buffer->size);
 
 
     return true;

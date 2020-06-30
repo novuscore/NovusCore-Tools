@@ -43,7 +43,7 @@ public:
         }
     }
 
-    int Load(std::shared_ptr<ByteBuffer> buffer);
+    int Load(std::shared_ptr<Bytebuffer> buffer);
 
     class DBCRow
     {

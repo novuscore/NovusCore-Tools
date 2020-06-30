@@ -12,6 +12,6 @@ struct MMDX
     u32 size = 0;
     u8* filenames = nullptr; // Can store multiple names
 
-    static bool Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
+    static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };
 #pragma pack(pop)

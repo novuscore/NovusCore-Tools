@@ -1,7 +1,7 @@
 #include "MPHD.h"
 #include "../../Wrappers/WDT.h"
 
-bool MPHD::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt)
+bool MPHD::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
     if (!buffer->Get(wdt.mphd))
     {

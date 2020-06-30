@@ -5,7 +5,7 @@
 
 #include <Utils/StringUtils.h>
 
-void MPQFileJobBatch::AddFileJob(std::string filePath, std::function<void(std::shared_ptr<ByteBuffer>)> callback)
+void MPQFileJobBatch::AddFileJob(std::string filePath, std::function<void(std::shared_ptr<Bytebuffer>)> callback)
 {
     FileJob fileJob;
     fileJob.filePath = filePath;
@@ -85,7 +85,7 @@ void MPQFileJobBatch::ProcessThreadMain()
 
     while (_fileJobs.try_dequeue(fileJob))
     {
-        std::shared_ptr<ByteBuffer> byteBuffer = mpqLoader->GetFile(fileJob.filePath);
+        std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(fileJob.filePath);
 
         if (byteBuffer)
         {

@@ -2,7 +2,7 @@
 #include "../ChunkHeader.h"
 #include "../../Wrappers/ADT.h"
 
-bool MH2O::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
+bool MH2O::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
     if (!buffer->Get(adt.mh2o))
     {
@@ -11,7 +11,7 @@ bool MH2O::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, 
     }
 
     size_t extraDataSize = header.size - sizeof(MH2O);
-    buffer->ReadData += extraDataSize;
+    buffer->readData += extraDataSize;
     
     return true;
 }

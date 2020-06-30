@@ -17,6 +17,6 @@ struct MAIN
     };
     SMAreaInfo MapAreaInfo[NUM_SM_AREA_INFO];
 
-    static bool Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt);
+    static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt);
 };
 #pragma pack(pop)

@@ -18,6 +18,6 @@ struct MCIN
         u8 padding[4] = { 0 }; // This is used inside the client (asyncId)
     } mcnkInfo[16*16];
 
-    static bool Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
+    static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };
 #pragma pack(pop)

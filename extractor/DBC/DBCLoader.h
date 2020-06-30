@@ -36,7 +36,7 @@ namespace DBCLoader
     {
         std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
 
-        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\Map.dbc");
+        std::shared_ptr<Bytebuffer> file = handler->GetFile("DBFilesClient\\Map.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load Map.dbc");
@@ -97,7 +97,7 @@ namespace DBCLoader
     {
         std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
         
-        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\EmotesText.dbc");
+        std::shared_ptr<Bytebuffer> file = handler->GetFile("DBFilesClient\\EmotesText.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load EmotesText.dbc");
@@ -171,7 +171,7 @@ namespace DBCLoader
     {
         std::shared_ptr<MPQLoader> handler = ServiceLocator::GetMPQLoader();
 
-        std::shared_ptr<ByteBuffer> file = handler->GetFile("DBFilesClient\\Spell.dbc");
+        std::shared_ptr<Bytebuffer> file = handler->GetFile("DBFilesClient\\Spell.dbc");
         if (!file)
         {
             NC_LOG_ERROR("Failed to load Spell.dbc");

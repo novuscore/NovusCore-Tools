@@ -25,9 +25,9 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
     // We need to get the name of all the textures this ADT uses
     std::vector<std::string> textureNames;
 
-    ByteBuffer textureNameBuffer(mtex.filenames, mtex.size);
+    Bytebuffer textureNameBuffer(mtex.filenames, mtex.size);
 
-    while (textureNameBuffer.ReadData != textureNameBuffer.Size)
+    while (textureNameBuffer.readData != textureNameBuffer.size)
     {
         std::string textureName;
         textureNameBuffer.GetString(textureName);
@@ -122,7 +122,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
         }
         
         // Extract diffuse texture
-        fileJobBatch->AddFileJob(textureName, [textureName](std::shared_ptr<ByteBuffer> byteBuffer)
+        fileJobBatch->AddFileJob(textureName, [textureName](std::shared_ptr<Bytebuffer> byteBuffer)
         {
             fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
             outputPath = outputPath.make_preferred().replace_extension("dds");
@@ -131,7 +131,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 
             // Convert from BLP to DDS
             BLP::BlpConvert blpConvert;
-            blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->Size, outputPath.string());
+            blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string());
         });
 
         // Also extract specular if we should
@@ -143,7 +143,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
             filename += "_s.blp";
             specularPath = specularPath.replace_filename(filename);
 
-            fileJobBatch->AddFileJob(specularPath.string(), [specularPath](std::shared_ptr<ByteBuffer> byteBuffer)
+            fileJobBatch->AddFileJob(specularPath.string(), [specularPath](std::shared_ptr<Bytebuffer> byteBuffer)
             {
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(specularPath.string()).make_preferred();
                 outputPath = outputPath.make_preferred().replace_extension("dds");
@@ -151,7 +151,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
                 fs::create_directories(outputPath.parent_path());
 
                 BLP::BlpConvert blpConvert;
-                blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->Size, outputPath.string());
+                blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string());
             });
         }
 
@@ -198,9 +198,9 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
     }*/
 
     // Serialize our StringTable and write it to the file
-    std::shared_ptr<ByteBuffer> stringTableByteBuffer = ByteBuffer::Borrow<1048576>();
+    std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<1048576>();
     stringTable.Serialize(*stringTableByteBuffer);
-    output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->WrittenData);
+    output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
 
     output.close();
 }

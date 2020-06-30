@@ -34,11 +34,11 @@ private:
     struct FileJob
     {
         std::string filePath;
-        std::function<void(std::shared_ptr<ByteBuffer>)> callback;
+        std::function<void(std::shared_ptr<Bytebuffer>)> callback;
     };
 
 public:
-    void AddFileJob(std::string filePath, std::function<void(std::shared_ptr<ByteBuffer>)> callback); // Thread safe
+    void AddFileJob(std::string filePath, std::function<void(std::shared_ptr<Bytebuffer>)> callback); // Thread safe
     void RemoveDuplicates(); // This is NOT thread safe!
     void Process(); // This is NOT thread safe!
 

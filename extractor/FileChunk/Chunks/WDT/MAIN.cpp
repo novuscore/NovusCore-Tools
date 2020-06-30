@@ -1,7 +1,7 @@
 #include "MAIN.h"
 #include "../../Wrappers/WDT.h"
 
-bool MAIN::Read(std::shared_ptr<ByteBuffer>& buffer, const ChunkHeader& header, WDT& wdt)
+bool MAIN::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
     if (!buffer->Get(wdt.main))
     {
