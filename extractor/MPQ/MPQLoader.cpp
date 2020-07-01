@@ -210,7 +210,7 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
     _fileJobs.enqueue(fileJob);
 }
 
-void MPQLoader::GetFirstFile(std::string pattern, std::function<void(std::string)> callback)
+void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> callback)
 {
     for (void* archive : _archives)
     {
