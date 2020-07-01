@@ -9,7 +9,7 @@ void InterfaceLoader::LoadInterface()
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     MPQFileJobBatch mpqFileJob;
 
-    mpqLoader->GetFirstFile("Interface\\*.blp", [&mpqFileJob](std::string fileName)
+    mpqLoader->GetFiles("Interface\\*.blp", [&mpqFileJob](std::string fileName)
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
