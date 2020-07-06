@@ -4,8 +4,12 @@
 #include "../MPQ/MPQFileJobBatch.h"
 #include "../BLP/BLP2PNG/BlpConvert.h"
 
+#include <tracy/Tracy.hpp>
+
 void InterfaceLoader::LoadInterface()
 {
+    ZoneScoped;
+
     NC_LOG_MESSAGE("Extracting Interface...");
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
@@ -15,6 +19,7 @@ void InterfaceLoader::LoadInterface()
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
+                    ZoneScoped;
                     if (!buffer->writtenData)
                         return;
 
