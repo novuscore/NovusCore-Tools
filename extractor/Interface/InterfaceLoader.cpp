@@ -6,6 +6,8 @@
 
 void InterfaceLoader::LoadInterface()
 {
+    NC_LOG_MESSAGE("Extracting Interface...");
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     MPQFileJobBatch mpqFileJob;
 
@@ -13,6 +15,11 @@ void InterfaceLoader::LoadInterface()
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
+                    if (!buffer->size)
+                        return;
+
+                    NC_LOG_MESSAGE("Extracting %s", fileName);
+
                     std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Textures").append(fileName);
                     outputPath = outputPath.make_preferred().replace_extension("dds");
 

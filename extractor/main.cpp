@@ -83,10 +83,11 @@ i32 main()
             mapLoader->LoadMaps(internalMapNames);
         }
 
+        InterfaceLoader::LoadInterface();
+
         DBCLoader::LoadEmotesText();
         DBCLoader::LoadSpell();
-        InterfaceLoader::LoadInterface();
-       
+
         mpqLoader->Close();
         NC_LOG_SUCCESS("Finished extracting all data");
     }
