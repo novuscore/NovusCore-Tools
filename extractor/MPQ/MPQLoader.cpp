@@ -3,11 +3,12 @@
 #include <filesystem>
 #include <chrono>
 #include <Utils/StringUtils.h>
-
+#include <tracy/Tracy.hpp>
 namespace fs = std::filesystem;
 
 MPQLoader::MPQLoader()
 {
+    ZoneScoped;
     _archives.reserve(18);
     _isRunning = true;
 
@@ -23,6 +24,7 @@ MPQLoader::MPQLoader()
 
 MPQLoader::~MPQLoader()
 {
+    ZoneScoped;
     // Stop all our worker threads
     _isRunning = false;
 
@@ -35,6 +37,7 @@ MPQLoader::~MPQLoader()
 
 bool MPQLoader::Load()
 {
+    ZoneScoped;
     fs::path dataPath = fs::current_path().append("Data");
 
     // Failed to locate Data
@@ -148,6 +151,7 @@ bool MPQLoader::Load()
 }
 void MPQLoader::Close()
 {
+    ZoneScoped;
     for (void* archive : _archives)
     {
         SFileCloseArchive(archive);
@@ -156,6 +160,7 @@ void MPQLoader::Close()
 
 void* MPQLoader::HasFile(std::string_view file)
 {
+    ZoneScoped;
     for (void* arch : _archives)
     {
         if (SFileHasFile(arch, file.data()))
@@ -166,6 +171,7 @@ void* MPQLoader::HasFile(std::string_view file)
 }
 std::shared_ptr<Bytebuffer> MPQLoader::GetFile(std::string_view file)
 {
+    ZoneScoped;
     std::shared_ptr<Bytebuffer> buffer = nullptr;
 
     void* archive = HasFile(file);
@@ -204,6 +210,7 @@ std::shared_ptr<Bytebuffer> MPQLoader::GetFile(std::string_view file)
 
 void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<Bytebuffer>)> callback)
 {
+    ZoneScoped;
     FileJob fileJob;
     fileJob.filePath = file;
     fileJob.callback = callback;
@@ -213,6 +220,7 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
 
 void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> callback)
 {
+    ZoneScoped;
     std::vector<u32> foundFiles;
     foundFiles.reserve(16384); // May need to be changed in the future.
 
@@ -240,6 +248,7 @@ void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> c
 
 void MPQLoader::__Test__()
 {
+    ZoneScoped;
     std::shared_ptr<Bytebuffer> buffer = nullptr;
 
     for (void* archive : _archives)

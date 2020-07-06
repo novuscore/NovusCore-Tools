@@ -9,10 +9,14 @@
 #include "../../MAP/Chunk.h"
 #include "../../BLP/BLP2PNG/BlpConvert.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace fs = std::filesystem;
 
 void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 {
+    ZoneScoped;
+
     // We want to convert the ADT to a Chunk and save it to disk
     static Chunk* chunkTemplate = new Chunk(); // Don't change this one, we will use it in a memcpy to "reset" chunk
     static Chunk* chunk = new Chunk();
@@ -80,7 +84,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
             {
                 AlphaMap alphaMap;
                 memcpy(&alphaMap.alphaMap, &cells[i].mcals[j-1].alphaMap, 4096);
-                alphaMaps[i].push_back(alphaMap);
+                alphaMaps[i].emplace_back(alphaMap);
             }
         }
 
