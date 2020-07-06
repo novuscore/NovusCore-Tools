@@ -15,10 +15,10 @@ void InterfaceLoader::LoadInterface()
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
-                    if (!buffer->size)
+                    if (!buffer->writtenData)
                         return;
 
-                    NC_LOG_MESSAGE("Extracting %s", fileName);
+                    NC_LOG_MESSAGE("Extracting %s", fileName.c_str());
 
                     std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Textures").append(fileName);
                     outputPath = outputPath.make_preferred().replace_extension("dds");

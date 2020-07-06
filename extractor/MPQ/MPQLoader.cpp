@@ -2,6 +2,7 @@
 #include <cassert>
 #include <filesystem>
 #include <chrono>
+#include <Utils/StringUtils.h>
 
 namespace fs = std::filesystem;
 
@@ -197,7 +198,7 @@ std::shared_ptr<Bytebuffer> MPQLoader::GetFile(std::string_view file)
         buffer->writtenData = static_cast<size_t>(numBytesRead);
         assert(buffer->writtenData == buffer->size);
     }
-
+    
     return buffer;
 }
 
@@ -212,6 +213,9 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
 
 void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> callback)
 {
+    std::vector<u32> foundFiles;
+    foundFiles.reserve(16384); // May need to be changed in the future.
+
     for (void* archive : _archives)
     {
         SFILE_FIND_DATA data;
@@ -222,8 +226,15 @@ void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> c
 
         do
         {
+            u32 nameHash = StringUtils::fnv1a_32(data.cFileName, strlen(data.cFileName));
+            if (std::find(foundFiles.begin(), foundFiles.end(), nameHash) != foundFiles.end())
+                continue;
+
+            foundFiles.push_back(nameHash);
             callback(data.cFileName);
         } while (SFileFindNextFile(searchHandle, &data));
+
+        SFileFindClose(searchHandle);
     }
 }
 

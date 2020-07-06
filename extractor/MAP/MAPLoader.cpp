@@ -90,7 +90,6 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
                 // Extract data we want into our own format and then write adt to disk
                 adt.SaveToDisk(adtPath.string() + "/" + fileName + ".nmap", &_fileJobBatch);
-              
             }
         }
         else
