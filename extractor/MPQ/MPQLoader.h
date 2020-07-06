@@ -39,9 +39,6 @@ private:
 
 private:
     std::vector<void*> _archives;
-    
-    robin_hood::unordered_map<u32, bool> _extractedFileMap;
-    
     std::array<std::thread, 4> _workerThreads;
     std::atomic<bool> _isRunning = false;
     moodycamel::ConcurrentQueue<FileJob> _fileJobs;

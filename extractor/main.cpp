@@ -5,9 +5,26 @@
 #include "Interface/InterfaceLoader.h"
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
+#include <tracy/Tracy.hpp>
+
+#ifdef TRACY_ENABLE
+void* operator new(std::size_t count)
+{
+    auto ptr = malloc(count);
+    TracyAlloc(ptr, count);
+    return ptr;
+}
+void operator delete(void* ptr) noexcept
+{
+    TracyFree(ptr);
+    free(ptr);
+}
+
+#endif
 
 i32 main()
 {
+    ZoneScoped;
     std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
     std::shared_ptr<ChunkLoader> chunkLoader = std::make_shared<ChunkLoader>();
     std::shared_ptr<MapLoader> mapLoader = std::make_shared<MapLoader>();
