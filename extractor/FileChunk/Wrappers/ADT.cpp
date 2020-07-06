@@ -9,13 +9,18 @@
 #include "../../MAP/Chunk.h"
 #include "../../BLP/BLP2PNG/BlpConvert.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace fs = std::filesystem;
 
 void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 {
+    ZoneScoped;
+
     // We want to convert the ADT to a Chunk and save it to disk
     static Chunk* chunkTemplate = new Chunk(); // Don't change this one, we will use it in a memcpy to "reset" chunk
     static Chunk* chunk = new Chunk();
+    static std::vector<AlphaMap> alphaMaps[MAP_CELLS_PER_CHUNK];
 
     memcpy(chunk, chunkTemplate, sizeof(Chunk));
     
@@ -79,7 +84,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
             {
                 AlphaMap alphaMap;
                 memcpy(&alphaMap.alphaMap, &cells[i].mcals[j-1].alphaMap, 4096);
-                chunk->alphaMaps[i].push_back(alphaMap);
+                alphaMaps[i].emplace_back(alphaMap);
             }
         }
 
@@ -177,12 +182,13 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
     {
         output.write(reinterpret_cast<char const*>(&chunk->cells[i]), sizeof(chunk->cells[i])); // Write cell
 
-        u32 numAlphaMaps = static_cast<u32>(chunk->alphaMaps[i].size());
+        u32 numAlphaMaps = static_cast<u32>(alphaMaps[i].size());
         output.write(reinterpret_cast<char const*>(&numAlphaMaps), sizeof(u32)); // Write number of alpha maps
         if (numAlphaMaps > 0)
         {
-            output.write(reinterpret_cast<char const*>(chunk->alphaMaps[i].data()), sizeof(AlphaMap)* numAlphaMaps); // Write alpha maps
+            output.write(reinterpret_cast<char const*>(alphaMaps[i].data()), sizeof(AlphaMap)* numAlphaMaps); // Write alpha maps
         }
+        alphaMaps[i].clear();
     }
 
     /*for (Cell& cell : chunk->cells)

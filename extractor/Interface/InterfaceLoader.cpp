@@ -4,8 +4,14 @@
 #include "../MPQ/MPQFileJobBatch.h"
 #include "../BLP/BLP2PNG/BlpConvert.h"
 
+#include <tracy/Tracy.hpp>
+
 void InterfaceLoader::LoadInterface()
 {
+    ZoneScoped;
+
+    NC_LOG_MESSAGE("Extracting Interface...");
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     MPQFileJobBatch mpqFileJob;
 
@@ -13,6 +19,10 @@ void InterfaceLoader::LoadInterface()
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
+                    ZoneScoped;
+                    if (!buffer->writtenData)
+                        return;
+
                     std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Textures").append(fileName);
                     outputPath = outputPath.make_preferred().replace_extension("dds");
 

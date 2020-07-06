@@ -25,6 +25,9 @@ struct ADT;
 struct ChunkHeader;
 struct MCNK
 {
+    u32 token = 0;
+    u32 size = 0;
+    
     u32 flags = 0;
     u32 indexX = 0;
     u32 indexY = 0;
