@@ -9,10 +9,14 @@
 #include "../FileChunk/Wrappers/WDT.h"
 #include "../FileChunk/Wrappers/ADT.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace fs = std::filesystem;
 
 void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 {
+    ZoneScoped;
+
     NC_LOG_MESSAGE("Extracting ADTs...");
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
@@ -20,6 +24,8 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
     for (const std::string& internalName : internalMapNames)
     {
+        ZoneScoped;
+
         bool createAdtDirectory = true;
         std::filesystem::path adtPath = outputPath.string() + "/" + internalName;
         if (std::filesystem::exists(adtPath))
@@ -55,6 +61,8 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
             for (u32 i = 0; i < NUM_SM_AREA_INFO; i++)
             {
+                ZoneScoped;
+
                 MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[i];
                 if (!areaInfo.hasADT)
                     continue;

@@ -3,6 +3,8 @@
 #include "Wrappers/ADT.h"
 #include <cassert>
 
+#include <tracy/Tracy.hpp>
+
 ChunkLoader::ChunkLoader()
 {
     _wdtChunkToFunction =
@@ -34,6 +36,8 @@ ChunkLoader::ChunkLoader()
 
 bool ChunkLoader::LoadWDT(std::shared_ptr<Bytebuffer>& buffer, WDT& wdt)
 {
+    ZoneScoped;
+
     ChunkHeader header;
     do
     {
@@ -63,6 +67,8 @@ bool ChunkLoader::LoadWDT(std::shared_ptr<Bytebuffer>& buffer, WDT& wdt)
 }
 bool ChunkLoader::LoadADT(std::shared_ptr<Bytebuffer>& buffer, const WDT& wdt, ADT& adt)
 {
+    ZoneScoped;
+
     ChunkHeader header;
     do
     {
