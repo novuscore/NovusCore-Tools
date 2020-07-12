@@ -19,9 +19,7 @@ void InterfaceLoader::LoadInterface()
         {
             mpqFileJob.AddFileJob(fileName, [fileName](std::shared_ptr<Bytebuffer> buffer)
                 {
-                    ZoneScoped;
-                    if (!buffer->writtenData)
-                        return;
+                    ZoneScopedN("LoadInterface::FileJob");
 
                     std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Textures").append(fileName);
                     outputPath = outputPath.make_preferred().replace_extension("dds");

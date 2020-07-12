@@ -129,6 +129,8 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
         // Extract diffuse texture
         fileJobBatch->AddFileJob(textureName, [textureName](std::shared_ptr<Bytebuffer> byteBuffer)
         {
+            ZoneScopedN("ADT::SaveToFile::Extract Diffuse Texture");
+
             fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
             outputPath = outputPath.make_preferred().replace_extension("dds");
 
@@ -150,6 +152,8 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 
             fileJobBatch->AddFileJob(specularPath.string(), [specularPath](std::shared_ptr<Bytebuffer> byteBuffer)
             {
+                ZoneScopedN("ADT::SaveToFile::Extract Specular Texture");
+                
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(specularPath.string()).make_preferred();
                 outputPath = outputPath.make_preferred().replace_extension("dds");
 

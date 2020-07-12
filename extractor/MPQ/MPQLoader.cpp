@@ -239,6 +239,10 @@ void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> c
                 continue;
 
             foundFiles.push_back(nameHash);
+
+            if ((data.dwFileFlags & MPQ_FILE_DELETE_MARKER) == MPQ_FILE_DELETE_MARKER)
+                continue;
+
             callback(data.cFileName);
         } while (SFileFindNextFile(searchHandle, &data));
 
