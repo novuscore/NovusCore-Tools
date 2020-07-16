@@ -53,7 +53,7 @@ namespace BLP
         typedef void (BlpConvert::*tConvertFunction)(ByteStream&, std::vector<uint32_t>&, const std::size_t&) const;
 
     public:
-        void Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath);
+        void Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps);
 
     private:
         void LoadFirstLayer(const BlpHeader& header, ByteStream& data, std::vector<uint32_t>& imageData) const;

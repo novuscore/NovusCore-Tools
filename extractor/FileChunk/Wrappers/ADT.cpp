@@ -138,7 +138,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
 
             // Convert from BLP to DDS
             BLP::BlpConvert blpConvert;
-            blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string());
+            blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
         });
 
         // Also extract specular if we should
@@ -160,7 +160,7 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
                 fs::create_directories(outputPath.parent_path());
 
                 BLP::BlpConvert blpConvert;
-                blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string());
+                blpConvert.Convert(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
             });
         }
 

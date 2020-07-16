@@ -28,7 +28,7 @@ void InterfaceLoader::LoadInterface()
 
                     // Convert from BLP to DDS
                     BLP::BlpConvert blpConvert;
-                    blpConvert.Convert(buffer->GetDataPointer(), buffer->size, outputPath.string());
+                    blpConvert.Convert(buffer->GetDataPointer(), buffer->size, outputPath.string(), false);
                 });
         }
     );

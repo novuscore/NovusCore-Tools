@@ -40,7 +40,7 @@ namespace BLP
         }
     }
 
-    void BlpConvert::Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath)
+    void BlpConvert::Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps)
     {
         ByteStream stream(inputBytes, size);
         BlpHeader header = stream.read<BlpHeader>();
@@ -67,16 +67,13 @@ namespace BLP
         {
             nvttFormat = nvtt::Format::Format_RGBA;
         }
-
+        
         nvtt::InputOptions inputOptions;
         inputOptions.setTextureLayout(nvtt::TextureType_2D, header.width, header.height);
         inputOptions.setFormat(nvtt::InputFormat::InputFormat_BGRA_8UB);
         inputOptions.setMipmapData(imageData.data(), header.width, header.height);
-        // TODO: inputOptions.generateMipMap
+        inputOptions.setMipmapGeneration(generateMipmaps);
         
-        // RGBA
-        // BGRA
-
         nvtt::OutputOptions outputOptions;
         outputOptions.setFileName(outputPath.c_str());
 
