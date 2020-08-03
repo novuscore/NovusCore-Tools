@@ -2,12 +2,15 @@
 #include "../MPQ/MPQLoader.h"
 #include "../Utils/ServiceLocator.h"
 
+#include <Containers/StringTable.h>
 #include <filesystem>
 #include <sstream>
 
 #include "../FileChunk/ChunkLoader.h"
 #include "../FileChunk/Wrappers/WDT.h"
 #include "../FileChunk/Wrappers/ADT.h"
+#include "../FileChunk/Wrappers/WMO_ROOT.h"
+#include "../FileChunk/Wrappers/WMO_OBJECT.h"
 
 #include <tracy/Tracy.hpp>
 
@@ -21,6 +24,9 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
     std::filesystem::path outputPath = fs::current_path().append("ExtractedData/Maps");
+
+    // Create a StringTable for WMO names
+    StringTable stringTable;
 
     for (const std::string& internalName : internalMapNames)
     {
@@ -96,6 +102,17 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
                     createAdtDirectory = false;
                 }
 
+                // Save all WMO names referenced by this ADT
+                Bytebuffer wmoNameBuffer(adt.mwmo.filenames, adt.mwmo.size);
+
+                while (wmoNameBuffer.readData != wmoNameBuffer.size)
+                {
+                    std::string wmoName;
+                    wmoNameBuffer.GetString(wmoName);
+
+                    u32 index = stringTable.AddString(wmoName);
+                }
+
                 // Extract data we want into our own format and then write adt to disk
                 adt.SaveToDisk(adtPath.string() + "/" + fileName + ".nmap", &_fileJobBatch);
             }
@@ -110,6 +127,45 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
     NC_LOG_MESSAGE("Running %u batched file jobs", _fileJobBatch.GetJobCount());
     _fileJobBatch.Process();
+
+    // Extract WMOs
+    for (u32 i = 0; i < stringTable.GetNumStrings(); i++)
+    {
+        const std::string& wmoName = stringTable.GetString(i);
+        const std::string wmoGroupBaseName = wmoName.substr(0, wmoName.length() - 4) + "_"; // -3 removing (.wmo) and adding (_)
+
+        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoName);
+        WMO_ROOT wmoRoot;
+        if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
+        {
+            std::stringstream ss;
+
+            for (u32 i = 0; i < wmoRoot.mohd.groupsNum; i++)
+            {
+                ss << wmoGroupBaseName << std::setw(3) << std::setfill('0') << i << ".wmo";
+
+                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(ss.str());
+
+                // TODO: Add a safety check for GetFIle (I've left it out now so we can ensure all WMO Group files exists)
+
+                WMO_OBJECT wmoObject;
+                wmoObject.root = &wmoRoot;
+
+                if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
+                {
+                    // TODO: Implement SaveToDisk for WMO_OBJECT
+                    //wmoObject.SaveToDisk();
+                }
+
+                ss.clear();
+                ss.str("");
+            }
+
+            // TODO: Implement SaveToDisk for WMO_ROOT
+            //wmoRoot.SaveToDisk();
+        }
+    }
+
 
     return;
 }

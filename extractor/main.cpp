@@ -71,29 +71,6 @@ i32 main()
             }
         }
 
-        /* Example usage code for the new mpqloader & chunkloader
-        std::shared_ptr<Bytebuffer> fileWDT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth.wdt");
-
-        WDT wdt;
-        if (!chunkLoader->LoadWDT(fileWDT, wdt))
-        {
-            // This could happen, but for now I want to assert it in this test scenario
-            assert(false);
-        }
-
-        // Check if we should load ADTs (If the given flag is set, a single map object is used instead
-        if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
-        {
-            std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile("world\\maps\\Azeroth\\Azeroth_29_30.adt");
-            ADT adt;
-            if (!chunkLoader->LoadADT(fileADT, wdt, adt))
-            {
-                // This could happen, but for now I want to assert it in this test scenario
-                assert(false);
-            }
-        }
-        */
-
         std::vector<std::string> internalMapNames;
         if (DBCLoader::LoadMap(internalMapNames))
         {
