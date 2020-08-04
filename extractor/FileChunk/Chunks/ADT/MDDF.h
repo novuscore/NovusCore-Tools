@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
+#include <vector>
 
 enum class MDDFFlags
 {
@@ -20,12 +21,17 @@ struct ADT;
 struct ChunkHeader;
 struct MDDF
 {
-    u32 nameId = 0;
-    u32 uniqueId = 0;
-    vec3 position = vec3(0,0,0);
-    vec3 rotation = vec3(0,0,0);
-    u16 scale = 0;
-    u16 flags = 0;
+    struct MDDFData
+    {
+        u32 nameId = 0;
+        u32 uniqueId = 0;
+        vec3 position = vec3(0, 0, 0);
+        vec3 rotation = vec3(0, 0, 0);
+        u16 scale = 0;
+        u16 flags = 0;
+    };
+
+    std::vector<MDDFData> data;
 
     static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };

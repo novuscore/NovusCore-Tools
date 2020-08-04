@@ -115,9 +115,9 @@ void ADT::SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch)
     for(const std::string& textureName : textureNames)
     {
         bool loadSpecular = true;
-        if (mtxfs.size() > textureIndex)
+        if (mtxf.data.size() > textureIndex)
         {
-            MTXF textureFlags = mtxfs[textureIndex++];
+            const MTXF::MTXFData& textureFlags = mtxf.data[textureIndex++];
 
             // We don't load specular if the texture is a cubemap
             if (textureFlags.flags & static_cast<u32>(MTXFFlags::UseCubemap))

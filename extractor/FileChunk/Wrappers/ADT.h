@@ -28,11 +28,11 @@ struct ADT
     MMID mmid;
     MWMO mwmo;
     MWID mwid;
-    std::vector<MDDF> mddfs;
-    std::vector<MODF> modfs;
+    MDDF mddf;
+    MODF modf;
     MFBO mfbo;
     MH2O mh2o;
-    std::vector<MTXF> mtxfs;
+    MTXF mtxf;
     std::vector<MapCellInfo> cells;
 
     void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);

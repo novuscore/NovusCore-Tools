@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
+#include <vector>
 
 enum class MTXFFlags
 {
@@ -18,7 +19,12 @@ struct ADT;
 struct ChunkHeader;
 struct MTXF
 {
-    u32 flags = 0;
+    struct MTXFData
+    {
+        u32 flags = 0;
+    };
+
+    std::vector<MTXFData> data;
 
     static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt);
 };

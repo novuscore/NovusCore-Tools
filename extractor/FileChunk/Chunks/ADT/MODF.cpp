@@ -3,6 +3,8 @@
 #include "../../Wrappers/WDT.h"
 #include "../../Wrappers/ADT.h"
 
+#include "../../../Utils/ChunkUtils.h"
+
 bool MODF::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
     if (!buffer->Get(wdt.modf))
@@ -16,22 +18,5 @@ bool MODF::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& heade
 
 bool MODF::ReadADT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
-    size_t num = header.size / sizeof(MODF);
-    if (num == 0)
-        return true;
-
-    adt.mddfs.reserve(num);
-    for (size_t i = 0; i < num; i++)
-    {
-        MODF modf;
-        if (!buffer->Get(modf))
-        {
-            assert(false);
-            return false;
-        }
-        
-        adt.modfs.push_back(modf);
-    }
-
-    return true;
+    return ChunkUtils::LoadArrayOfStructs(buffer, header.size, adt.modf.data);
 }

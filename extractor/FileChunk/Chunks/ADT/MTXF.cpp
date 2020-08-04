@@ -2,24 +2,9 @@
 #include "../ChunkHeader.h"
 #include "../../Wrappers/ADT.h"
 
+#include "../../../Utils/ChunkUtils.h"
+
 bool MTXF::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
-    size_t num = header.size / sizeof(MTXF);
-    if (num == 0)
-        return true;
-
-    adt.mddfs.reserve(num);
-    for (size_t i = 0; i < num; i++)
-    {
-        MTXF mtxf;
-        if (!buffer->Get(mtxf))
-        {
-            assert(false);
-            return false;
-        }
-        
-        adt.mtxfs.push_back(mtxf);
-    }
-
-    return true;
+    return ChunkUtils::LoadArrayOfStructs(buffer, header.size, adt.mtxf.data);
 }
