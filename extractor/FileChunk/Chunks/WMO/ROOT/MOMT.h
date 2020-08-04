@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
+#include <vector>
 
 enum class MOMTFlags
 {
@@ -19,25 +20,30 @@ struct WMO_ROOT;
 struct ChunkHeader;
 struct MOMT
 {
-    u32 flags = 0;
-    u32 shader = 0;
-    u32 blendMode = 0;
+    struct MOMTData
+    {
+        u32 flags = 0;
+        u32 shader = 0;
+        u32 blendMode = 0;
 
-    u32 textureOffset1 = 0; // Offset into MOTX
+        u32 textureOffset1 = 0; // Offset into MOTX
 
-    u32 sIDNEmissiveColor = 0; // This is (BGRA)
-    u32 sIDNFrameEmissiveColor = 0; // This is (BGRA) (Set at runtime)
+        u32 sIDNEmissiveColor = 0; // This is (BGRA)
+        u32 sIDNFrameEmissiveColor = 0; // This is (BGRA) (Set at runtime)
 
-    u32 textureOffset2 = 0; // Offset into MOTX
-    u32 diffuseColor1 = 0; // // This is (ARGB)
+        u32 textureOffset2 = 0; // Offset into MOTX
+        u32 diffuseColor1 = 0; // // This is (ARGB)
 
-    u32 terrainType = 0; // Reference key (TerrainTypeRec)
+        u32 terrainType = 0; // Reference key (TerrainTypeRec)
 
-    u32 textureOffset3 = 0; // Offset into MOTX
-    u32 diffuseColor2 = 0; // This is (ARGB) ??
-    u32 texture3Flags = 0;
+        u32 textureOffset3 = 0; // Offset into MOTX
+        u32 diffuseColor2 = 0; // This is (ARGB) ??
+        u32 texture3Flags = 0;
 
-    u32 unused[4] = { 0 }; // This is padding for runtime data (Usually stores textures)
+        u32 unused[4] = { 0 }; // This is padding for runtime data (Usually stores textures)
+    };
+    
+    std::vector<MOMTData> data;
 
     static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WMO_ROOT& wmo);
 };

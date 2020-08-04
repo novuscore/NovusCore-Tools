@@ -4,6 +4,10 @@
 
 bool MODN::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WMO_ROOT& wmo)
 {
+    // Doodads are not required
+    if (header.size == 0)
+        return true;
+
     wmo.modn.size = header.size;
     wmo.modn.doodadNames = buffer->GetReadPointer();
 

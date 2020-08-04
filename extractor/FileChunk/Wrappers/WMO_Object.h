@@ -16,12 +16,12 @@ struct WMO_OBJECT
 {
     MVER mver;
     MOGP mogp;
-    std::vector<MOPY> mopys;
+    MOPY mopy;
     MOVI movi;
     MOVT movt;
     MONR monr;
     MOTV motv;
-    std::vector<MOBA> mobas;
+    MOBA moba;
 
     WMO_ROOT* root;
     void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);

@@ -24,18 +24,18 @@ struct WMO_ROOT
     MVER mver;
     MOHD mohd;
     MOTX motx;
-    std::vector<MOMT> momts;
+    MOMT momt;
     MOGN mogn;
-    std::vector<MOGI> mogis;
+    MOGI mogi;
     MOSB mosb;
     MOPV mopv;
-    std::vector<MOPT> mopts;
-    std::vector<MOPR> moprs;
-    std::vector<MOLT> molts;
-    std::vector<MODS> modss;
+    MOPT mopt;
+    MOPR mopr;
+    MOLT molt;
+    MODS mods;
     MODN modn;
-    std::vector<MODD> modds;
-    std::vector<MFOG> mfogs;
+    MODD modd;
+    MFOG mfog;
     MCVP mcvp;
 
     void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);

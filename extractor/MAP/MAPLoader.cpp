@@ -123,7 +123,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
         }
     }
 
-    _fileJobBatch.RemoveDuplicates();
+     _fileJobBatch.RemoveDuplicates();
 
     NC_LOG_MESSAGE("Running %u batched file jobs", _fileJobBatch.GetJobCount());
     _fileJobBatch.Process();
@@ -146,7 +146,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
                 std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(ss.str());
 
-                // TODO: Add a safety check for GetFIle (I've left it out now so we can ensure all WMO Group files exists)
+                // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
 
                 WMO_OBJECT wmoObject;
                 wmoObject.root = &wmoRoot;

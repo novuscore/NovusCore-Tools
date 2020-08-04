@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
+#include <vector>
 
 enum class MOPYFLags
 {
@@ -19,26 +20,31 @@ struct WMO_OBJECT;
 struct ChunkHeader;
 struct MOPY
 {
-    struct
+    struct MOPYData
     {
-        u8 Unk_0x1 : 1;
-        u8 NoCamCollide : 1;
-        u8 Detail : 1;
-        u8 Collision : 1; // Turns off water ripple effects, and is used for ghost material triangles)
-        u8 Hint : 1;
-        u8 Render : 1;
-        u8 Unk_0x40 : 1;
-        u8 CollideHit : 1;
+        struct
+        {
+            u8 Unk_0x1 : 1;
+            u8 NoCamCollide : 1;
+            u8 Detail : 1;
+            u8 Collision : 1; // Turns off water ripple effects, and is used for ghost material triangles)
+            u8 Hint : 1;
+            u8 Render : 1;
+            u8 Unk_0x40 : 1;
+            u8 CollideHit : 1;
 
-        // 0xFF is used for triangles that can only collide, meaning they are not rendered.
+            // 0xFF is used for triangles that can only collide, meaning they are not rendered.
 
-        bool IsTransFace() { return Unk_0x1 && (Detail || Render); }
-        bool IsColor() { return !Collision; }
-        bool IsRenderFace() { return Render && !Detail; }
-        bool IsCollidable() { return Collision || IsRenderFace(); }
-    } flags;
+            bool IsTransFace() { return Unk_0x1 && (Detail || Render); }
+            bool IsColor() { return !Collision; }
+            bool IsRenderFace() { return Render && !Detail; }
+            bool IsCollidable() { return Collision || IsRenderFace(); }
+        } flags;
 
-    u8 materialId; // This is an index into MOMT
+        u8 materialId; // This is an index into MOMT
+    };
+
+    std::vector<MOPYData> data;
 
     static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WMO_ROOT& wmoRoot, WMO_OBJECT& wmoObject);
 };
