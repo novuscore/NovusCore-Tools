@@ -31,6 +31,9 @@ constexpr u16 MAP_CHUNK_INVALID = std::numeric_limits<u16>().max();
 constexpr u16 MAP_CELLS_PER_CHUNK_SIDE = 16;
 constexpr u16 MAP_CELLS_PER_CHUNK = MAP_CELLS_PER_CHUNK_SIDE * MAP_CELLS_PER_CHUNK_SIDE;
 
+constexpr u32  MAP_CHUNK_ALPHAMAP_NUM_CHANNELS = 4;
+constexpr u32 MAP_CHUNK_ALPHAMAP_BYTE_SIZE = CELL_ALPHAMAP_SIZE * MAP_CELLS_PER_CHUNK * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS;
+
 #pragma pack(push, 1)
 struct HeightHeader
 {
@@ -56,13 +59,30 @@ struct AlphaMap
     u8 alphaMap[4096] = { 0 }; // 4096 pixels per alpha map
 };
 
+struct MapObjectPlacement
+{
+    u32 nameID;
+    vec3 position;
+    vec3 rotation;
+    u16 scale;
+};
+
+struct MapChunkHeader
+{
+    u32 token = MAP_CHUNK_TOKEN;
+    u32 version = 2;
+};
+
 struct Chunk
 {
-    ChunkHeader chunkHeader;
+    MapChunkHeader header;
 
     HeightHeader heightHeader;
     HeightBox heightBox;
 
+    std::vector<MapObjectPlacement> mapObjectPlacements;
+
     Cell cells[MAP_CELLS_PER_CHUNK];
+    u8 alphaMapData[MAP_CHUNK_ALPHAMAP_BYTE_SIZE];
 };
 #pragma pack(pop)

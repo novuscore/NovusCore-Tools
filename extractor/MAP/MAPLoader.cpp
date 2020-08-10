@@ -23,7 +23,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
     NC_LOG_MESSAGE("Extracting ADTs...");
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
-    std::filesystem::path outputPath = fs::current_path().append("ExtractedData/Maps");
+    std::filesystem::path outputPath = fs::current_path().append("ExtractedData");
 
     // Create a StringTable for WMO names
     StringTable stringTable;
@@ -33,7 +33,7 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
         ZoneScoped;
 
         bool createAdtDirectory = true;
-        std::filesystem::path adtPath = outputPath.string() + "/" + internalName;
+        std::filesystem::path adtPath = outputPath.string() + "/Maps/" + internalName;
         if (std::filesystem::exists(adtPath))
         {
             // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
@@ -113,8 +113,10 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
                     u32 index = stringTable.AddString(wmoName);
                 }
 
+                std::filesystem::path adtSubPath = "Maps/" + internalName;
+
                 // Extract data we want into our own format and then write adt to disk
-                adt.SaveToDisk(adtPath.string() + "/" + fileName + ".nmap", &_fileJobBatch);
+                adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _jobBatch);
             }
         }
         else
@@ -123,18 +125,14 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
         }
     }
 
-     _fileJobBatch.RemoveDuplicates();
-
-    NC_LOG_MESSAGE("Running %u batched file jobs", _fileJobBatch.GetJobCount());
-    _fileJobBatch.Process();
-
     // Extract WMOs
     for (u32 i = 0; i < stringTable.GetNumStrings(); i++)
     {
-        const std::string& wmoName = stringTable.GetString(i);
-        const std::string wmoGroupBaseName = wmoName.substr(0, wmoName.length() - 4) + "_"; // -3 removing (.wmo) and adding (_)
+        const std::string& wmoPath = stringTable.GetString(i);
+        const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
+        const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
 
-        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoName);
+        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoPath);
         WMO_ROOT wmoRoot;
         if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
         {
@@ -142,9 +140,11 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
             for (u32 i = 0; i < wmoRoot.mohd.groupsNum; i++)
             {
-                ss << wmoGroupBaseName << std::setw(3) << std::setfill('0') << i << ".wmo";
+                ss << wmoGroupBasePath << std::setw(3) << std::setfill('0') << i << ".wmo";
 
-                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(ss.str());
+                std::string wmoGroupPath = ss.str();
+
+                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupPath);
 
                 // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
 
@@ -153,19 +153,29 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
                 if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
                 {
-                    // TODO: Implement SaveToDisk for WMO_OBJECT
-                    //wmoObject.SaveToDisk();
+                    fs::path wmoGroupPathPath = outputPath.string() + "/MapObjects/" + wmoGroupPath;
+                    wmoGroupPathPath.replace_extension(".nmo"); // .nmo
+                    wmoGroupPathPath.make_preferred();
+
+                    std::filesystem::create_directories(wmoGroupPathPath.parent_path());
+
+                    wmoObject.SaveToDisk(wmoGroupPathPath.string(), _jobBatch);
                 }
 
                 ss.clear();
                 ss.str("");
             }
 
-            // TODO: Implement SaveToDisk for WMO_ROOT
-            //wmoRoot.SaveToDisk();
+            std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
+
+            std::filesystem::create_directories(wmoRootPath.parent_path());
+
+            wmoRoot.SaveToDisk(wmoRootPath.string(), _jobBatch);
         }
     }
 
+    // Run file jobs
+    _jobBatch.RemoveDuplicates();
 
     return;
 }

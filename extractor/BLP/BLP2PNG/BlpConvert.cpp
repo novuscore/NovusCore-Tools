@@ -10,6 +10,7 @@
 #include "BlpConvert.h"
 #include "BlpConvertException.h"
 #include <nvtt/nvtt.h>
+#include <cassert>
 
 namespace BLP 
 {
@@ -40,7 +41,7 @@ namespace BLP
         }
     }
 
-    void BlpConvert::Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps)
+    void BlpConvert::ConvertBLP(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps)
     {
         ByteStream stream(inputBytes, size);
         BlpHeader header = stream.read<BlpHeader>();
@@ -76,9 +77,86 @@ namespace BLP
         
         nvtt::OutputOptions outputOptions;
         outputOptions.setFileName(outputPath.c_str());
+        outputOptions.setContainer(nvtt::Container::Container_DDS10);
 
         nvtt::CompressionOptions compressionOptions;
         compressionOptions.setFormat(nvttFormat);
+
+        nvtt::Compressor compressor;
+        compressor.process(inputOptions, compressionOptions, outputOptions);
+    }
+
+    uint32_t GetInputFormatSize(nvtt::InputFormat inputFormat)
+    {
+        switch(inputFormat)
+        {
+            case nvtt::InputFormat::InputFormat_BGRA_8UB:   return 4;   // Normalized [0, 1] 8 bit fixed point.
+            case nvtt::InputFormat::InputFormat_RGBA_16F:   return 8;   // 16 bit floating point.
+            case nvtt::InputFormat::InputFormat_RGBA_32F:   return 16;   // 32 bit floating point.
+            case nvtt::InputFormat::InputFormat_R_32F:      return 4;      // Single channel 32 bit floating point.
+            default: assert(false);
+        };
+        return 1;
+    }
+
+    nvtt::InputFormat GetInputFormat(const InputFormat& inputFormat)
+    {
+        switch (inputFormat)
+        {
+        case InputFormat::BGRA_8UB: return nvtt::InputFormat::InputFormat_BGRA_8UB;
+        case InputFormat::RGBA_16F: return nvtt::InputFormat::InputFormat_RGBA_16F;
+        case InputFormat::RGBA_32F: return nvtt::InputFormat::InputFormat_RGBA_32F;
+        case InputFormat::R_32F:    return nvtt::InputFormat::InputFormat_R_32F;
+        default: assert(false);
+        };
+        return nvtt::InputFormat::InputFormat_BGRA_8UB;
+    }
+
+    nvtt::Format GetOutputFormat(Format format)
+    {
+        switch (format)
+        {
+            case Format::RGB: return nvtt::Format::Format_RGB;
+            case Format::RGBA: return nvtt::Format::Format_RGBA;
+            case Format::DXT1: return nvtt::Format::Format_DXT1;
+            case Format::DXT3: return nvtt::Format::Format_DXT3;
+            case Format::DXT5: return nvtt::Format::Format_DXT5;
+            default: assert(false);
+        }
+        return nvtt::Format::Format_RGB;
+    }
+
+    void BlpConvert::ConvertRaw(uint32_t width, uint32_t height, uint32_t layers, unsigned char* inputBytes, std::size_t size, InputFormat inputFormat, Format outputFormat, const std::string& outputPath, bool generateMipmaps)
+    {
+        nvtt::TextureType type = nvtt::TextureType_2D;
+        if (layers != 1)
+        {
+            type = nvtt::TextureType_Array;
+        }
+
+        nvtt::InputFormat nvttInputFormat = GetInputFormat(inputFormat);
+        nvtt::Format nvttOutputFormat = GetOutputFormat(outputFormat);
+
+        uint32_t inputFormatSize = GetInputFormatSize(nvttInputFormat);
+
+        nvtt::InputOptions inputOptions;
+        inputOptions.setTextureLayout(type, width, height, 1, layers);
+        inputOptions.setFormat(nvttInputFormat);
+
+        for (uint32_t i = 0; i < layers; i++)
+        {
+            void* src = inputBytes + (i * width * height * inputFormatSize);
+            inputOptions.setMipmapData(src, width, height, 1, i);
+        }
+        
+        inputOptions.setMipmapGeneration(generateMipmaps);
+
+        nvtt::OutputOptions outputOptions;
+        outputOptions.setFileName(outputPath.c_str());
+        outputOptions.setContainer(nvtt::Container::Container_DDS10);
+
+        nvtt::CompressionOptions compressionOptions;
+        compressionOptions.setFormat(nvttOutputFormat);
 
         nvtt::Compressor compressor;
         compressor.process(inputOptions, compressionOptions, outputOptions);

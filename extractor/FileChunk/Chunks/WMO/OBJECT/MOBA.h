@@ -14,7 +14,7 @@ struct MOBA
         i16 tx, ty, tz;
 
         u32 startIndex; // This is an index into MOVI
-        u16 triangleNum;
+        u16 indexCount;
         u16 minIndex; // Start Vertex
         u16 maxIndex; // Last Vertex
         u8 unk; // Flag?

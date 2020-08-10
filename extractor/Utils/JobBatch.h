@@ -21,33 +21,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 */
-
 #pragma once
-#include <Utils/DebugHandler.h>
-#include <Utils/ConcurrentQueue.h>
-#include <Utils/ByteBuffer.h>
+#include <NovusTypes.h>
 #include <functional>
+#include <atomic>
 
-class MPQFileJobBatch
+#include <Utils/ConcurrentQueue.h>
+
+struct Job
 {
-private:
-    struct FileJob
-    {
-        std::string filePath;
-        std::function<void(std::shared_ptr<Bytebuffer>)> callback;
-    };
+    u32 nameHash;
+    std::function<void()> callback;
+};
 
+class JobBatch
+{
 public:
-    void AddFileJob(std::string filePath, std::function<void(std::shared_ptr<Bytebuffer>)> callback); // Thread safe
-    void RemoveDuplicates(); // This is NOT thread safe!
-    void Process(); // This is NOT thread safe!
+    void AddJob(u32 nameHash, std::function<void()> callback);
+    void RemoveDuplicates();
 
     size_t GetJobCount();
 
 private:
-    void ProcessThreadMain();
-
-private:
-    moodycamel::ConcurrentQueue<FileJob> _fileJobs;
     std::atomic<size_t> _numJobs;
+    moodycamel::ConcurrentQueue<Job> _jobs;
+
+    friend class JobBatchRunner;
 };

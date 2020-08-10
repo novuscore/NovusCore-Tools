@@ -31,6 +31,14 @@ namespace BLP
         };
     }
 
+    enum InputFormat
+    {
+        BGRA_8UB,
+        RGBA_16F,
+        RGBA_32F,
+        R_32F
+    };
+
     enum Format 
     {
         RGB,
@@ -38,6 +46,7 @@ namespace BLP
         DXT1,
         DXT3,
         DXT5,
+        RGBA,
         UNKNOWN
     };
 
@@ -53,7 +62,8 @@ namespace BLP
         typedef void (BlpConvert::*tConvertFunction)(ByteStream&, std::vector<uint32_t>&, const std::size_t&) const;
 
     public:
-        void Convert(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps);
+        void ConvertBLP(unsigned char* inputBytes, std::size_t size, const std::string& outputPath, bool generateMipmaps);
+        void ConvertRaw(uint32_t width, uint32_t height, uint32_t layers, unsigned char* inputBytes, std::size_t size, InputFormat inputFormat, Format outputFormat, const std::string& outputPath, bool generateMipmaps);
 
     private:
         void LoadFirstLayer(const BlpHeader& header, ByteStream& data, std::vector<uint32_t>& imageData) const;
@@ -79,5 +89,7 @@ namespace BLP
         tConvertFunction GetDxtConvertFunction(const Format& format) const;
 
         void SwapByteOrder(uint32_t& ui) const;
+
+
     };
 }

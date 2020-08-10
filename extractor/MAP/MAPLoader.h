@@ -24,13 +24,14 @@
 #pragma once
 #include <Utils/DebugHandler.h>
 
-#include "../MPQ/MPQFileJobBatch.h"
+#include "../Utils/JobBatch.h"
 
 class MapLoader
 {
 public:
     void LoadMaps(std::vector<std::string> internalMapNames);
+    JobBatch& GetJobBatch() { return _jobBatch; }
 
 private:
-    MPQFileJobBatch _fileJobBatch;
+    JobBatch _jobBatch;
 };
