@@ -7,7 +7,7 @@
 
 bool JobBatchToken::IsFinished()
 {
-    return _runner->IsBatchRunning(_batchID);
+    return !_runner->IsBatchRunning(_batchID);
 }
 
 void JobBatchToken::WaitUntilFinished()
@@ -82,6 +82,9 @@ JobBatchToken JobBatchRunner::AddBatch(JobBatch& batch)
     assert(_isBatchRunning.size() < std::numeric_limits<u32>::max());
 
     u32 batchID = static_cast<u32>(_isBatchRunning.size());
+
+    batch.batchId = batchID;
+    _isBatchRunning.push_back(true);
     _runningBatches.push_back(&batch);
 
     return JobBatchToken(this, batchID);
@@ -141,6 +144,8 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
         {
             // Remove empty batch from _runningBatches
             std::unique_lock lock(_runningBatchesMutex);
+
+            _isBatchRunning[batch.batchId] = false;
             _runningBatches.erase(_runningBatches.begin());
 
             thread.getJobAttempts++;
@@ -181,6 +186,10 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
         std::unique_lock lock(_runningBatchesMutex);
         if (_runningBatches.size() > 0 && _runningBatches[0]->GetJobCount() == 0)
             _runningBatches.erase(_runningBatches.begin());
+    }
+
+    {
+        ZoneScopedN("Exited Worker Thread");
     }
 }
 

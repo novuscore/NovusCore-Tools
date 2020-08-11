@@ -76,9 +76,11 @@ i32 main()
         std::vector<std::string> internalMapNames;
         if (DBCLoader::LoadMap(internalMapNames))
         {
-            mapLoader->LoadMaps(internalMapNames);
-            JobBatch& jobBatch = mapLoader->GetJobBatch();
             jobBatchRunner->Start();
+
+            mapLoader->LoadMaps(internalMapNames, jobBatchRunner);
+
+            JobBatch& jobBatch = mapLoader->GetJobBatch();
             jobBatchRunner->AddBatch(jobBatch);
 
             NC_LOG_MESSAGE("Adding batch of %u jobs", jobBatch.GetJobCount());

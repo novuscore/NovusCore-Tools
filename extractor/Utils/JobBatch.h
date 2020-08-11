@@ -45,6 +45,7 @@ public:
 private:
     std::atomic<size_t> _numJobs;
     moodycamel::ConcurrentQueue<Job> _jobs;
+    size_t batchId = 0;
 
     friend class JobBatchRunner;
 };

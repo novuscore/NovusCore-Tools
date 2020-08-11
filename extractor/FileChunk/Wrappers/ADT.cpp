@@ -239,7 +239,6 @@ void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
 
     fs::path alphaMapDataPath = ("Data/extracted" / alphaMapSubPath).make_preferred();
     u32 alphaMapStringIndex = stringTable.AddString(alphaMapDataPath.string());
-    assert(alphaMapStringIndex > 0); // This should never be 0, we always use at least one texture
     
     // Create a file
     fs::path outputPath = fs::current_path().append("ExtractedData").append(fileName).make_preferred();

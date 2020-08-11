@@ -25,13 +25,17 @@
 #include <Utils/DebugHandler.h>
 
 #include "../Utils/JobBatch.h"
+#include <Containers/StringTable.h>
 
 class MapLoader
 {
 public:
-    void LoadMaps(std::vector<std::string> internalMapNames);
+    void LoadMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);
     JobBatch& GetJobBatch() { return _jobBatch; }
 
 private:
     JobBatch _jobBatch;
+
+    // Create a StringTable for WMO names
+    StringTable _stringTable;
 };
