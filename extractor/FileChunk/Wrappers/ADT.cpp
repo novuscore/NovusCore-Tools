@@ -3,7 +3,6 @@
 #include <fstream>
 #include <filesystem>
 
-#include <Containers/StringTable.h>
 #include <Utils/StringUtils.h>
 #include <Utils/DebugHandler.h>
 
@@ -17,14 +16,13 @@
 
 namespace fs = std::filesystem;
 
-void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
+void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStringTable, JobBatch& jobBatch)
 {
     ZoneScoped;
 
     // We want to convert the ADT to a Chunk and save it to disk
     static Chunk* chunkTemplate = new Chunk(); // Don't change this one, we will use it in a memcpy to "reset" chunk
-    static Chunk* chunk = new Chunk();
-    static std::vector<AlphaMap> alphaMaps[MAP_CELLS_PER_CHUNK];
+    thread_local Chunk* chunk = new Chunk();
 
     memcpy(chunk, chunkTemplate, sizeof(Chunk));
     
@@ -130,7 +128,7 @@ void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
             fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
             outputPath = outputPath.make_preferred().replace_extension("dds");
 
-            fs::create_directories(outputPath.parent_path());
+            textureFolderStringTable.AddString(outputPath.parent_path().string());
 
             jobBatch.AddJob(textureNameHash, [textureName, outputPath]()
             {
@@ -164,7 +162,7 @@ void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(specularName).make_preferred();
                 outputPath = outputPath.make_preferred().replace_extension("dds");
 
-                fs::create_directories(outputPath.parent_path());
+                textureFolderStringTable.AddString(outputPath.parent_path().string());
 
                 jobBatch.AddJob(textureNameHash, [specularName, outputPath]()
                 {
@@ -226,7 +224,6 @@ void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
     alphaMapSubPath = alphaMapSubPath.append(fileName).make_preferred().replace_extension("dds");
 
     fs::path alphaMapOutputPath = fs::current_path().append("ExtractedData") / alphaMapSubPath;
-    fs::create_directories(alphaMapOutputPath.parent_path());
     u32 alphaMapOutputPathHash = StringUtils::fnv1a_32(alphaMapOutputPath.string().c_str(), alphaMapOutputPath.string().size());
 
     //jobBatch.AddJob(alphaMapPathHash, [alphaMapPath, fileName, chunk->alphaMapData]()
@@ -242,9 +239,6 @@ void ADT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
     
     // Create a file
     fs::path outputPath = fs::current_path().append("ExtractedData").append(fileName).make_preferred();
-    
-    fs::create_directories(outputPath.parent_path());
-
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {

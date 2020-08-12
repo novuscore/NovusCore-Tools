@@ -142,24 +142,33 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
         Job job;
         if (!batch._jobs.try_dequeue(job))
         {
-            // Remove empty batch from _runningBatches
-            std::unique_lock lock(_runningBatchesMutex);
+            // This check ensures that if we failed to dequeue, that it was because another thread took the job.
+            if (batch._jobs.size_approx() != 0)
+            {
+                NC_LOG_FATAL("JobBatchRunner::ProcessThreadMain: Failed to dequeue job from batch with remaining jobs waiting");
+            }
 
-            _isBatchRunning[batch.batchId] = false;
-            _runningBatches.erase(_runningBatches.begin());
-
-            thread.getJobAttempts++;
+            // It is possible to hit this, if the last job was dequeued by another thread at the same time.
             continue;
         }
 
         ZoneScopedN("ExecuteJobs");
+
 
         // If we succeeded, reset getJobAttempts
         thread.getJobAttempts = 0;
 
         // Then do work
         job.callback();
-        batch._numJobs--;
+
+        if (--batch._numJobs == 0)
+        {
+            // Remove empty batch from _runningBatches
+            std::unique_lock lock(_runningBatchesMutex);
+
+            _isBatchRunning[batch.batchId] = false;
+            _runningBatches.erase(_runningBatches.begin());
+        }
     }
 
     // Finish any running batches before we exit

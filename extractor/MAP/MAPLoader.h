@@ -37,5 +37,6 @@ private:
     JobBatch _jobBatch;
 
     // Create a StringTable for WMO names
-    StringTable _stringTable;
+    StringTable _wmoStringTable;
+    StringTable _textureFolderStringTable;
 };

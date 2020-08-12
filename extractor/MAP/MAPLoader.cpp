@@ -24,10 +24,14 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames, std::shared_
     NC_LOG_MESSAGE("Extracting ADTs...");
     std::filesystem::path outputPath = fs::current_path().append("ExtractedData");
 
-    // Create base map folder
+    // Create base map folders
     std::filesystem::path mapFolderPath = outputPath.string() + "/Maps/";
     if (!std::filesystem::exists(mapFolderPath))
         std::filesystem::create_directory(mapFolderPath);
+
+    std::filesystem::path mapAlphaMapFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/";
+    if (!std::filesystem::exists(mapAlphaMapFolderPath))
+        std::filesystem::create_directories(mapAlphaMapFolderPath);
 
     JobBatch mapJobBatch;
     for (const std::string& internalName : internalMapNames)
@@ -42,6 +46,10 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames, std::shared_
             std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
             //NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
+
+            std::filesystem::path alphaMapOutputFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/" + internalName;
+            if (!std::filesystem::exists(alphaMapOutputFolderPath))
+                std::filesystem::create_directory(alphaMapOutputFolderPath);
 
             std::string fileName = "";
             std::stringstream fileNameStream;
@@ -109,13 +117,13 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames, std::shared_
                         std::string wmoName;
                         wmoNameBuffer.GetString(wmoName);
 
-                        u32 index = _stringTable.AddString(wmoName);
+                        u32 index = _wmoStringTable.AddString(wmoName);
                     }
 
                     std::filesystem::path adtSubPath = "Maps/" + internalName;
 
                     // Extract data we want into our own format and then write adt to disk
-                    adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _jobBatch);
+                    adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _textureFolderStringTable, _jobBatch);
                 }
             }
             else
@@ -130,12 +138,19 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames, std::shared_
     JobBatchToken token = jobBatchRunner->AddBatch(mapJobBatch);
     token.WaitUntilFinished();
 
+    // Create Directories for Textures
+    for (u32 i = 0; i < _textureFolderStringTable.GetNumStrings(); i++)
+    {
+        const std::string& textureFolderPath = _textureFolderStringTable.GetString(i);
+        fs::create_directories(textureFolderPath);
+    }
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
     // Extract WMOs
-    for (u32 i = 0; i < _stringTable.GetNumStrings(); i++)
+    for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
     {
-        const std::string& wmoPath = _stringTable.GetString(i);
+        const std::string& wmoPath = _wmoStringTable.GetString(i);
         const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
         const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
 
