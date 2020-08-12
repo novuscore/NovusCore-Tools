@@ -47,6 +47,7 @@ void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStri
     for (u16 i = 0; i < MAP_CELLS_PER_CHUNK; i++)
     {
         Cell cell;
+        cell.hole = cells[i].mcnk.holesLowRes;
         cell.areaId = cells[i].mcnk.areaId;
         
         // Height data
