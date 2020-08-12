@@ -15,8 +15,9 @@
 #include "../Chunks/ADT/MTXF.h"
 #include "../Chunks/ADT/MCNK.h"
 #include "../Chunks/ADT/MapCell.h"
+#include <Containers/StringTable.h>
 
-class MPQFileJobBatch;
+class JobBatch;
 
 struct ADT
 {
@@ -35,5 +36,5 @@ struct ADT
     MTXF mtxf;
     std::vector<MapCellInfo> cells;
 
-    void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);
+    void SaveToDisk(const std::string& fileName, StringTable& textureFolderStringTable, JobBatch& jobBatch);
 };

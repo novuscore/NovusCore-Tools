@@ -1,8 +1,9 @@
 #include "MAPLoader.h"
 #include "../MPQ/MPQLoader.h"
 #include "../Utils/ServiceLocator.h"
+#include "../Utils/JobBatchRunner.h"
 
-#include <Containers/StringTable.h>
+#include <Utils/StringUtils.h>
 #include <filesystem>
 #include <sstream>
 
@@ -16,125 +17,144 @@
 
 namespace fs = std::filesystem;
 
-void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
+void MapLoader::LoadMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     ZoneScoped;
 
     NC_LOG_MESSAGE("Extracting ADTs...");
-    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
-    std::filesystem::path outputPath = fs::current_path().append("ExtractedData/Maps");
+    std::filesystem::path outputPath = fs::current_path().append("ExtractedData");
 
-    // Create a StringTable for WMO names
-    StringTable stringTable;
+    // Create base map folders
+    std::filesystem::path mapFolderPath = outputPath.string() + "/Maps/";
+    if (!std::filesystem::exists(mapFolderPath))
+        std::filesystem::create_directory(mapFolderPath);
 
+    std::filesystem::path mapAlphaMapFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/";
+    if (!std::filesystem::exists(mapAlphaMapFolderPath))
+        std::filesystem::create_directories(mapAlphaMapFolderPath);
+
+    JobBatch mapJobBatch;
     for (const std::string& internalName : internalMapNames)
     {
         ZoneScoped;
 
-        bool createAdtDirectory = true;
-        std::filesystem::path adtPath = outputPath.string() + "/" + internalName;
-        if (std::filesystem::exists(adtPath))
+        mapJobBatch.AddJob(StringUtils::fnv1a_32(internalName.c_str(), internalName.size()), [this, outputPath, internalName]()
         {
-            // The reason we don't immediately create the folder is because there may not be any associated ADTs to the map (This can be solved by reading the WDL file)
-            createAdtDirectory = false;
-        }
+            ZoneScopedN("MapLoader::v::Extract Maps");
 
-        NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
+            std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+            std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
-        std::string fileName = "";
-        std::stringstream fileNameStream;
-        std::stringstream filePathStream;
+            //NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
 
-        // WDT File
-        filePathStream << "world\\maps\\" << internalName << "\\" << internalName << ".WDT";
+            std::filesystem::path alphaMapOutputFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/" + internalName;
+            if (!std::filesystem::exists(alphaMapOutputFolderPath))
+                std::filesystem::create_directory(alphaMapOutputFolderPath);
 
-        std::shared_ptr<Bytebuffer> fileWDT = mpqLoader->GetFile(filePathStream.str());
-        if (!fileWDT)
-            continue;
+            std::string fileName = "";
+            std::stringstream fileNameStream;
+            std::stringstream filePathStream;
 
-        WDT wdt;
-        if (!chunkLoader->LoadWDT(fileWDT, wdt))
-        {
-            // This could happen, but for now I want to assert it in this test scenario
-            assert(false);
-        }
+            // WDT File
+            filePathStream << "world\\maps\\" << internalName << "\\" << internalName << ".WDT";
 
-        if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
-        {
-            filePathStream.clear();
-            filePathStream.str("");
+            std::shared_ptr<Bytebuffer> fileWDT = mpqLoader->GetFile(filePathStream.str());
+            if (!fileWDT)
+                return;
 
-            for (u32 i = 0; i < NUM_SM_AREA_INFO; i++)
+            WDT wdt;
+            if (!chunkLoader->LoadWDT(fileWDT, wdt))
             {
-                ZoneScoped;
+                // This could happen, but for now I want to assert it in this test scenario
+                assert(false);
+            }
 
-                MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[i];
-                if (!areaInfo.hasADT)
-                    continue;
+            std::filesystem::path adtPath = outputPath.string() + "/Maps/" + internalName;
+            if (!std::filesystem::exists(adtPath))
+                std::filesystem::create_directory(adtPath);
 
-                u32 x = i % 64;
-                u32 y = i / 64;
-
-                fileNameStream.clear();
-                fileNameStream.str("");
-
+            if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
+            {
                 filePathStream.clear();
                 filePathStream.str("");
 
-                fileNameStream << internalName << "_" << x << "_" << y;
-                fileName = fileNameStream.str();
-                filePathStream << "world\\maps\\" << internalName << "\\" << fileName << ".adt";
-
-                std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
-                assert(fileADT); // If this file does not exist, something went very wrong
-
-                ADT adt;
-                if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                for (u32 i = 0; i < NUM_SM_AREA_INFO; i++)
                 {
-                    // This could happen, but for now I want to assert it in this test scenario
-                    assert(false);
+                    ZoneScoped;
+
+                    MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[i];
+                    if (!areaInfo.hasADT)
+                        continue;
+
+                    u32 x = i % 64;
+                    u32 y = i / 64;
+
+                    fileNameStream.clear();
+                    fileNameStream.str("");
+
+                    filePathStream.clear();
+                    filePathStream.str("");
+
+                    fileNameStream << internalName << "_" << x << "_" << y;
+                    fileName = fileNameStream.str();
+                    filePathStream << "world\\maps\\" << internalName << "\\" << fileName << ".adt";
+
+                    std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
+                    assert(fileADT); // If this file does not exist, something went very wrong
+
+                    ADT adt;
+                    if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                    {
+                        // This could happen, but for now I want to assert it in this test scenario
+                        assert(false);
+                    }
+
+                    // Save all WMO names referenced by this ADT
+                    Bytebuffer wmoNameBuffer(adt.mwmo.filenames, adt.mwmo.size);
+
+                    while (wmoNameBuffer.readData != wmoNameBuffer.size)
+                    {
+                        std::string wmoName;
+                        wmoNameBuffer.GetString(wmoName);
+
+                        u32 index = _wmoStringTable.AddString(wmoName);
+                    }
+
+                    std::filesystem::path adtSubPath = "Maps/" + internalName;
+
+                    // Extract data we want into our own format and then write adt to disk
+                    adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _textureFolderStringTable, _jobBatch);
                 }
-
-                if (createAdtDirectory)
-                {
-                    std::filesystem::create_directory(adtPath);
-                    createAdtDirectory = false;
-                }
-
-                // Save all WMO names referenced by this ADT
-                Bytebuffer wmoNameBuffer(adt.mwmo.filenames, adt.mwmo.size);
-
-                while (wmoNameBuffer.readData != wmoNameBuffer.size)
-                {
-                    std::string wmoName;
-                    wmoNameBuffer.GetString(wmoName);
-
-                    u32 index = stringTable.AddString(wmoName);
-                }
-
-                // Extract data we want into our own format and then write adt to disk
-                adt.SaveToDisk(adtPath.string() + "/" + fileName + ".nmap", &_fileJobBatch);
             }
-        }
-        else
-        {
-            // Here we have a map with just a global map object
-        }
+            else
+            {
+                // Here we have a map with just a global map object
+            }
+        });
     }
 
-     _fileJobBatch.RemoveDuplicates();
+    NC_LOG_MESSAGE("Adding batch of %u jobs", mapJobBatch.GetJobCount());
 
-    NC_LOG_MESSAGE("Running %u batched file jobs", _fileJobBatch.GetJobCount());
-    _fileJobBatch.Process();
+    JobBatchToken token = jobBatchRunner->AddBatch(mapJobBatch);
+    token.WaitUntilFinished();
 
-    // Extract WMOs
-    for (u32 i = 0; i < stringTable.GetNumStrings(); i++)
+    // Create Directories for Textures
+    for (u32 i = 0; i < _textureFolderStringTable.GetNumStrings(); i++)
     {
-        const std::string& wmoName = stringTable.GetString(i);
-        const std::string wmoGroupBaseName = wmoName.substr(0, wmoName.length() - 4) + "_"; // -3 removing (.wmo) and adding (_)
+        const std::string& textureFolderPath = _textureFolderStringTable.GetString(i);
+        fs::create_directories(textureFolderPath);
+    }
 
-        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoName);
+    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
+    // Extract WMOs
+    for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
+    {
+        const std::string& wmoPath = _wmoStringTable.GetString(i);
+        const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
+        const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
+
+        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoPath);
         WMO_ROOT wmoRoot;
         if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
         {
@@ -142,9 +162,11 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
             for (u32 i = 0; i < wmoRoot.mohd.groupsNum; i++)
             {
-                ss << wmoGroupBaseName << std::setw(3) << std::setfill('0') << i << ".wmo";
+                ss << wmoGroupBasePath << std::setw(3) << std::setfill('0') << i << ".wmo";
 
-                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(ss.str());
+                std::string wmoGroupPath = ss.str();
+
+                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupPath);
 
                 // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
 
@@ -153,19 +175,29 @@ void MapLoader::LoadMaps(std::vector<std::string> internalMapNames)
 
                 if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
                 {
-                    // TODO: Implement SaveToDisk for WMO_OBJECT
-                    //wmoObject.SaveToDisk();
+                    fs::path wmoGroupPathPath = outputPath.string() + "/MapObjects/" + wmoGroupPath;
+                    wmoGroupPathPath.replace_extension(".nmo"); // .nmo
+                    wmoGroupPathPath.make_preferred();
+
+                    std::filesystem::create_directories(wmoGroupPathPath.parent_path());
+
+                    wmoObject.SaveToDisk(wmoGroupPathPath.string(), _jobBatch);
                 }
 
                 ss.clear();
                 ss.str("");
             }
 
-            // TODO: Implement SaveToDisk for WMO_ROOT
-            //wmoRoot.SaveToDisk();
+            std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
+
+            std::filesystem::create_directories(wmoRootPath.parent_path());
+
+            wmoRoot.SaveToDisk(wmoRootPath.string(), _jobBatch);
         }
     }
 
+    // Run file jobs
+    _jobBatch.RemoveDuplicates();
 
     return;
 }

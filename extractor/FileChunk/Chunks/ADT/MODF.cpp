@@ -7,7 +7,8 @@
 
 bool MODF::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, WDT& wdt)
 {
-    if (!buffer->Get(wdt.modf))
+    MODF::MODFData& data = wdt.modf.data.emplace_back();
+    if (!buffer->Get(data))
     {
         assert(false);
         return false;
@@ -18,5 +19,9 @@ bool MODF::ReadWDT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& heade
 
 bool MODF::ReadADT(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WDT& wdt, ADT& adt)
 {
+    // WMOs are not required
+    if (header.size == 0)
+        return true;
+
     return ChunkUtils::LoadArrayOfStructs(buffer, header.size, adt.modf.data);
 }

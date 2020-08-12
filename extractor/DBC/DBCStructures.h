@@ -36,6 +36,32 @@ struct DBCMap
     u32 MaxPlayers;
 };
 
+struct DBCLight
+{
+    u32 id;
+    u32 mapId; // This is a reference to Map.dbc
+    vec3 position; // X, Y and Z position for the center of the Light(Skybox) Sphere.
+    vec2 fallOff; // X == Start (Inner Radius), Y == End (Outer Radius)
+    i32 paramsClear; // Used in clear weather
+    i32 paramsClearInWater; // Used in clear weather while being underwater.
+    i32 paramsStorm; // Used in storm like weather.
+    i32 paramsStormInWater; // Used in storm like weather while being underwater.
+    i32 paramsDeath; // Appears to be hardcoded in the client, but maybe not.
+    
+
+    // These are only used in WoTLK
+    i32 paramUnk1;
+    i32 paramUnk2;
+    i32 paramUnk3;
+};
+
+struct DBCLightSkybox
+{
+    u32 id;
+    std::string modelPath;
+    u32 flags;
+};
+
 struct DBCEmotesText
 {
     u32 Id;

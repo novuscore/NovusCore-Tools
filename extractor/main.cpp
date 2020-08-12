@@ -5,6 +5,7 @@
 #include "Interface/InterfaceLoader.h"
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
+#include "Utils/JobBatchRunner.h"
 #include <tracy/Tracy.hpp>
 
 #ifdef TRACY_ENABLE
@@ -30,6 +31,7 @@ i32 main()
     std::shared_ptr<MapLoader> mapLoader = std::make_shared<MapLoader>();
     std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
 
+    std::shared_ptr<JobBatchRunner> jobBatchRunner = std::make_shared<JobBatchRunner>();
     ServiceLocator::SetMPQLoader(mpqLoader);
     ServiceLocator::SetChunkLoader(chunkLoader);
     ServiceLocator::SetDBCReader(dbcReader);
@@ -74,13 +76,25 @@ i32 main()
         std::vector<std::string> internalMapNames;
         if (DBCLoader::LoadMap(internalMapNames))
         {
-            mapLoader->LoadMaps(internalMapNames);
+            jobBatchRunner->Start();
+
+            mapLoader->LoadMaps(internalMapNames, jobBatchRunner);
+
+            JobBatch& jobBatch = mapLoader->GetJobBatch();
+            jobBatchRunner->AddBatch(jobBatch);
+
+            NC_LOG_MESSAGE("Adding batch of %u jobs", jobBatch.GetJobCount());
         }
 
-        InterfaceLoader::LoadInterface();
+        JobBatch interfaceBatch;
+        InterfaceLoader::LoadInterface(interfaceBatch);
+        jobBatchRunner->AddBatch(interfaceBatch);
+        NC_LOG_MESSAGE("Adding batch of %u jobs", interfaceBatch.GetJobCount());
 
         DBCLoader::LoadEmotesText();
         DBCLoader::LoadSpell();
+
+        jobBatchRunner->Stop();
 
         mpqLoader->Close();
         NC_LOG_SUCCESS("Finished extracting all data");

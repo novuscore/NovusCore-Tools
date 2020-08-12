@@ -9,20 +9,20 @@
 #include "../Chunks/WMO/OBJECT/MOTV.h"
 #include "../Chunks/WMO/OBJECT/MOBA.h"
 
-class MPQFileJobBatch;
+class JobBatch;
 
 struct WMO_ROOT;
 struct WMO_OBJECT
 {
     MVER mver;
-    MOGP mogp;
-    MOPY mopy;
-    MOVI movi;
-    MOVT movt;
-    MONR monr;
-    MOTV motv;
-    MOBA moba;
+    MOGP mogp; // Kind of a header with information about the other chunks, lots of counts
+    MOPY mopy; // Material info for triangles
+    MOVI movi; // Indices
+    MOVT movt; // Vertex position
+    MONR monr; // Vertex normals
+    MOTV motv; // Vertex uvs
+    MOBA moba; // Render batches
 
     WMO_ROOT* root;
-    void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);
+    void SaveToDisk(const std::string& fileName, JobBatch& jobBatch);
 };

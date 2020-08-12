@@ -24,13 +24,19 @@
 #pragma once
 #include <Utils/DebugHandler.h>
 
-#include "../MPQ/MPQFileJobBatch.h"
+#include "../Utils/JobBatch.h"
+#include <Containers/StringTable.h>
 
 class MapLoader
 {
 public:
-    void LoadMaps(std::vector<std::string> internalMapNames);
+    void LoadMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);
+    JobBatch& GetJobBatch() { return _jobBatch; }
 
 private:
-    MPQFileJobBatch _fileJobBatch;
+    JobBatch _jobBatch;
+
+    // Create a StringTable for WMO names
+    StringTable _wmoStringTable;
+    StringTable _textureFolderStringTable;
 };

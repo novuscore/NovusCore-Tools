@@ -22,12 +22,30 @@
 # SOFTWARE.
 */
 #pragma once
-#include <Utils/DebugHandler.h>
+#include <NovusTypes.h>
+#include <functional>
+#include <atomic>
 
-class JobBatch;
+#include <Utils/ConcurrentQueue.h>
 
-class InterfaceLoader
+struct Job
+{
+    u32 nameHash;
+    std::function<void()> callback;
+};
+
+class JobBatch
 {
 public:
-    static void LoadInterface(JobBatch& jobBatch);
+    void AddJob(u32 nameHash, std::function<void()> callback);
+    void RemoveDuplicates();
+
+    size_t GetJobCount();
+
+private:
+    std::atomic<size_t> _numJobs;
+    moodycamel::ConcurrentQueue<Job> _jobs;
+    size_t batchId = 0;
+
+    friend class JobBatchRunner;
 };

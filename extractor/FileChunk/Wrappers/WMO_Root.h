@@ -17,26 +17,26 @@
 #include "../Chunks/WMO/ROOT/MFOG.h"
 #include "../Chunks/WMO/ROOT/MCVP.h"
 
-class MPQFileJobBatch;
+class JobBatch;
 
 struct WMO_ROOT
 {
     MVER mver;
-    MOHD mohd;
-    MOTX motx;
-    MOMT momt;
-    MOGN mogn;
-    MOGI mogi;
-    MOSB mosb;
+    MOHD mohd; // header file for WMO_ROOT, number of objects etc
+    MOTX motx; // Texture names
+    MOMT momt; // Materials
+    MOGN mogn; 
+    MOGI mogi; // Information for the groups
+    MOSB mosb; 
     MOPV mopv;
     MOPT mopt;
     MOPR mopr;
     MOLT molt;
     MODS mods;
     MODN modn;
-    MODD modd;
+    MODD modd; // Information for the doodad instances
     MFOG mfog;
     MCVP mcvp;
 
-    void SaveToDisk(const std::string& fileName, MPQFileJobBatch* fileJobBatch);
+    void SaveToDisk(const std::string& fileName, JobBatch& jobBatch);
 };

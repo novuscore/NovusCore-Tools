@@ -21,33 +21,61 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 */
-
 #pragma once
+#include <NovusTypes.h>
 #include <Utils/DebugHandler.h>
-#include <Utils/ConcurrentQueue.h>
-#include <Utils/ByteBuffer.h>
-#include <functional>
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <shared_mutex>
 
-class MPQFileJobBatch
+class JobBatch;
+class JobBatchRunner;
+
+class JobBatchToken
 {
-private:
-    struct FileJob
-    {
-        std::string filePath;
-        std::function<void(std::shared_ptr<Bytebuffer>)> callback;
-    };
-
 public:
-    void AddFileJob(std::string filePath, std::function<void(std::shared_ptr<Bytebuffer>)> callback); // Thread safe
-    void RemoveDuplicates(); // This is NOT thread safe!
-    void Process(); // This is NOT thread safe!
-
-    size_t GetJobCount();
+    bool IsFinished();
+    void WaitUntilFinished();
 
 private:
-    void ProcessThreadMain();
+    JobBatchToken(JobBatchRunner* runner, u32 token);
+
+    JobBatchRunner* _runner;
+    u32 _batchID;
+
+    friend class JobBatchRunner;
+};
+
+struct WorkerThread
+{
+    u32 threadID = 0;
+    u32 getJobAttempts = 0;
+    std::thread* thread;
+};
+
+class JobBatchRunner
+{
+public:
+    void Start();
+    void Stop();
+
+    JobBatchToken AddBatch(JobBatch& batch); // This is NOT thread safe!
 
 private:
-    moodycamel::ConcurrentQueue<FileJob> _fileJobs;
-    std::atomic<size_t> _numJobs;
+    bool IsBatchRunning(u32 batchID);
+
+    void ProcessThreadMain(WorkerThread thread);
+
+    std::shared_mutex _runningBatchesMutex;
+    std::vector<JobBatch*> _runningBatches;
+
+    std::vector<bool> _isBatchRunning;
+
+    std::atomic_bool _isRunning;
+    std::atomic_bool _shouldStop;
+    u32 _numThreads;
+    std::vector<WorkerThread> _workerThreads;
+
+    friend class JobBatchToken;
 };

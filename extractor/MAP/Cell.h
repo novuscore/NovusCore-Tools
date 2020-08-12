@@ -32,6 +32,8 @@ constexpr u16 CELL_INNER_GRID_SIZE = CELL_INNER_GRID_SIDE * CELL_INNER_GRID_SIDE
 
 constexpr u16 CELL_TOTAL_GRID_SIZE = CELL_OUTER_GRID_SIZE + CELL_INNER_GRID_SIZE;
 
+constexpr u32 CELL_ALPHAMAP_SIZE = 64 * 64;
+
 #pragma pack(push, 1)
 struct LiquidData
 {
