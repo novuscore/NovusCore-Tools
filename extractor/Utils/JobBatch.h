@@ -43,7 +43,7 @@ public:
     size_t GetJobCount();
 
 private:
-    std::atomic<size_t> _numJobs;
+    std::atomic<size_t> _numJobs = 0;
     moodycamel::ConcurrentQueue<Job> _jobs;
     size_t batchId = 0;
 

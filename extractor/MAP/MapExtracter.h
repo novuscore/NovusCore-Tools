@@ -27,10 +27,10 @@
 #include "../Utils/JobBatch.h"
 #include <Containers/StringTable.h>
 
-class MapLoader
+class MapExtracter
 {
 public:
-    void LoadMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);
+    void ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);
     JobBatch& GetJobBatch() { return _jobBatch; }
 
 private:
