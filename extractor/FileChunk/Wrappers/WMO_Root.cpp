@@ -42,13 +42,13 @@ std::string GetTextureNameByOffset(Bytebuffer& byteBuffer, size_t offset)
     return result;
 }
 
-void WMO_ROOT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
+void WMO_ROOT::SaveToDisk(const std::string& fileName, StringTable& textureStringTable, JobBatch& jobBatch)
 {
     ZoneScoped;
 
     // We want to convert the WMO_ROOT to a MapObjectRoot and save it to disk
     static MapObjectRoot* mapObjectRootTemplate = new MapObjectRoot(); // Don't change this one, we will use it in a memcpy to "reset" object
-    static MapObjectRoot* mapObjectRoot = new MapObjectRoot();
+    thread_local MapObjectRoot* mapObjectRoot = new MapObjectRoot();
 
     memcpy(mapObjectRoot, mapObjectRootTemplate, sizeof(MapObjectRoot));
 
@@ -78,7 +78,7 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
                 outputPath = outputPath.make_preferred().replace_extension("dds");
 
-                fs::create_directories(outputPath.parent_path());
+                textureStringTable.AddString(outputPath.parent_path().string());
 
                 jobBatch.AddJob(textureNameHash, [textureName, outputPath]()
                 {
@@ -110,7 +110,7 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
                 outputPath = outputPath.make_preferred().replace_extension("dds");
 
-                fs::create_directories(outputPath.parent_path());
+                textureStringTable.AddString(outputPath.parent_path().string());
 
                 // Extract texture
                 jobBatch.AddJob(textureNameHash, [textureName, outputPath]()
@@ -140,7 +140,7 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
                 fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
                 outputPath = outputPath.make_preferred().replace_extension("dds");
 
-                fs::create_directories(outputPath.parent_path());
+                textureStringTable.AddString(outputPath.parent_path().string());
 
                 // Extract texture
                 jobBatch.AddJob(textureNameHash, [textureName, outputPath]()
@@ -188,7 +188,7 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
     
     // Serialize and write our StringTable to the file
     std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<1048576>();
-    stringTable.Serialize(*stringTableByteBuffer);
+    stringTable.Serialize(stringTableByteBuffer.get());
     output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
 
     output.close();

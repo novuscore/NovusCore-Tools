@@ -266,7 +266,7 @@ void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStri
 
     // Serialize our StringTable and write it to the file
     std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<1048576>();
-    stringTable.Serialize(*stringTableByteBuffer);
+    stringTable.Serialize(stringTableByteBuffer.get());
     output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
 
     output.close();

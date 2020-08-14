@@ -135,39 +135,53 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
             thread.getJobAttempts++;
             continue;
         }
-        JobBatch& batch = *_runningBatches[0];
-        _runningBatchesMutex.unlock_shared();
 
-        // Try to dequeue from the batch
-        Job job;
-        if (!batch._jobs.try_dequeue(job))
+        bool didUnlock = false;
+        for (int i = 0; i < _runningBatches.size(); i++)
         {
-            // This check ensures that if we failed to dequeue, that it was because another thread took the job.
-            if (batch._jobs.size_approx() != 0)
+            JobBatch& batch = *_runningBatches[i];
+
+            // Try to dequeue from the batch
+            Job job;
+            if (!batch._jobs.try_dequeue(job))
             {
-                NC_LOG_FATAL("JobBatchRunner::ProcessThreadMain: Failed to dequeue job from batch with remaining jobs waiting");
+                // This check ensures that if we failed to dequeue, that it was because another thread took the job.
+                if (batch._jobs.size_approx() != 0)
+                {
+                    NC_LOG_FATAL("JobBatchRunner::ProcessThreadMain: Failed to dequeue job from batch with remaining jobs waiting");
+                }
+
+                // It is possible to hit this, if the last job was dequeued by another thread at the same time.
+                continue;
             }
 
-            // It is possible to hit this, if the last job was dequeued by another thread at the same time.
-            continue;
+            _runningBatchesMutex.unlock_shared();
+            didUnlock = true;
+
+            ZoneScopedN("ExecuteJobs");
+
+            // If we succeeded, reset getJobAttempts
+            thread.getJobAttempts = 0;
+
+            // Then do work
+            job.callback();
+
+            if (--batch._numJobs == 0)
+            {
+                // Remove empty batch from _runningBatches
+                std::unique_lock lock(_runningBatchesMutex);
+                _isBatchRunning[batch.batchId] = false;
+
+                auto itr = std::find_if(_runningBatches.begin(), _runningBatches.end(), [&currBatch = batch] (const JobBatch* b) -> bool { return currBatch.GetId() == b->GetId(); });
+                _runningBatches.erase(itr);
+            }
+
+            break;
         }
 
-        ZoneScopedN("ExecuteJobs");
-
-
-        // If we succeeded, reset getJobAttempts
-        thread.getJobAttempts = 0;
-
-        // Then do work
-        job.callback();
-
-        if (--batch._numJobs == 0)
+        if (!didUnlock)
         {
-            // Remove empty batch from _runningBatches
-            std::unique_lock lock(_runningBatchesMutex);
-
-            _isBatchRunning[batch.batchId] = false;
-            _runningBatches.erase(_runningBatches.begin());
+            _runningBatchesMutex.unlock_shared();
         }
     }
 

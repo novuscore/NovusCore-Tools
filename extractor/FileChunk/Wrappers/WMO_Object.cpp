@@ -18,7 +18,7 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
 
     // We want to convert the WMO_OBJECT to a MapObject and save it to disk
     static MapObject* mapObjectTemplate = new MapObject(); // Don't change this one, we will use it in a memcpy to "reset" object
-    static MapObject* mapObject = new MapObject();
+    thread_local MapObject* mapObject = new MapObject();
 
     memcpy(mapObject, mapObjectTemplate, sizeof(MapObject));
 

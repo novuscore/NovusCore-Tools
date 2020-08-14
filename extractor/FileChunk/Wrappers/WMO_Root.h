@@ -1,5 +1,5 @@
 #pragma once
-#include <vector>
+#include <Containers/StringTable.h>
 #include "../Chunks/MVER.h"
 #include "../Chunks/WMO/ROOT/MOHD.h"
 #include "../Chunks/WMO/ROOT/MOTX.h"
@@ -16,6 +16,7 @@
 #include "../Chunks/WMO/ROOT/MODD.h"
 #include "../Chunks/WMO/ROOT/MFOG.h"
 #include "../Chunks/WMO/ROOT/MCVP.h"
+#include <vector>
 
 class JobBatch;
 
@@ -38,5 +39,5 @@ struct WMO_ROOT
     MFOG mfog;
     MCVP mcvp;
 
-    void SaveToDisk(const std::string& fileName, JobBatch& jobBatch);
+    void SaveToDisk(const std::string& fileName, StringTable& textureStringTable, JobBatch& jobBatch);
 };

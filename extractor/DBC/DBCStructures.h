@@ -25,13 +25,22 @@
 #include <NovusTypes.h>
 #include <string>
 
+
+constexpr i32 NDBC_TOKEN = 1313096259;
+
+struct NDBCHeader
+{
+    u32 token = NDBC_TOKEN;
+    u32 version = 1;
+};
+
 struct DBCMap
 {
     u32 Id;
-    std::string InternalName;
+    u32 Name;
+    u32 InternalName;
     u32 InstanceType;
     u32 Flags;
-    std::string Name;
     u32 Expansion;
     u32 MaxPlayers;
 };

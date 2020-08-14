@@ -37,15 +37,19 @@ struct Job
 class JobBatch
 {
 public:
+    JobBatch() { }
+    JobBatch(JobBatch& t) { }
+
     void AddJob(u32 nameHash, std::function<void()> callback);
     void RemoveDuplicates();
 
+    size_t GetId() const { return batchId; }
     size_t GetJobCount();
 
 private:
     std::atomic<size_t> _numJobs = 0;
     moodycamel::ConcurrentQueue<Job> _jobs;
-    size_t batchId = 0;
+    size_t batchId = std::numeric_limits<u32>().max();
 
     friend class JobBatchRunner;
 };

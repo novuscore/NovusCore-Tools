@@ -34,16 +34,22 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
         std::filesystem::create_directories(mapAlphaMapFolderPath);
 
     JobBatch mapJobBatch;
-    for (const std::string& internalName : internalMapNames)
+
+    std::vector<JobBatch> mapSubJobBatches;
+    mapSubJobBatches.resize(internalMapNames.size());
+
+    moodycamel::ConcurrentQueue<JobBatchToken> jobBatchTokens;
+
+    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
+
+    for (size_t i = 0; i < internalMapNames.size(); i++)
     {
         ZoneScoped;
-
-        mapJobBatch.AddJob(StringUtils::fnv1a_32(internalName.c_str(), internalName.size()), [this, outputPath, internalName]()
+        const std::string& internalName = internalMapNames[i];
+        mapJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, i, outputPath, internalName]()
         {
             ZoneScopedN("MapLoader::v::Extract Maps");
-
-            std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-            std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
             //NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
 
@@ -78,16 +84,16 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                 filePathStream.clear();
                 filePathStream.str("");
 
-                for (u32 i = 0; i < NUM_SM_AREA_INFO; i++)
-                {
-                    ZoneScoped;
+                JobBatch& batch = mapSubJobBatches[i];
 
-                    MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[i];
+                for (u32 j = 0; j < NUM_SM_AREA_INFO; j++)
+                {
+                    MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[j];
                     if (!areaInfo.hasADT)
                         continue;
 
-                    u32 x = i % 64;
-                    u32 y = i / 64;
+                    u32 x = j % 64;
+                    u32 y = j / 64;
 
                     fileNameStream.clear();
                     fileNameStream.str("");
@@ -99,32 +105,42 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                     fileName = fileNameStream.str();
                     filePathStream << "world\\maps\\" << internalName << "\\" << fileName << ".adt";
 
-                    std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePathStream.str());
-                    assert(fileADT); // If this file does not exist, something went very wrong
+                    std::string filePath = filePathStream.str();
 
-                    ADT adt;
-                    if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                    batch.AddJob(0, [this, &mpqLoader, &chunkLoader, wdt, x, y, filePath, fileName, internalName]()
                     {
-                        // This could happen, but for now I want to assert it in this test scenario
-                        assert(false);
-                    }
+                        ZoneScoped;
 
-                    // Save all WMO names referenced by this ADT
-                    Bytebuffer wmoNameBuffer(adt.mwmo.filenames, adt.mwmo.size);
+                        std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePath);
+                        assert(fileADT); // If this file does not exist, something went very wrong
 
-                    while (wmoNameBuffer.readData != wmoNameBuffer.size)
-                    {
-                        std::string wmoName;
-                        wmoNameBuffer.GetString(wmoName);
+                        ADT adt;
+                        if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                        {
+                            // This could happen, but for now I want to assert it in this test scenario
+                            assert(false);
+                        }
 
-                        u32 index = _wmoStringTable.AddString(wmoName);
-                    }
+                        // Save all WMO names referenced by this ADT
+                        Bytebuffer wmoNameBuffer(adt.mwmo.filenames, adt.mwmo.size);
 
-                    std::filesystem::path adtSubPath = "Maps/" + internalName;
+                        while (wmoNameBuffer.readData != wmoNameBuffer.size)
+                        {
+                            std::string wmoName;
+                            wmoNameBuffer.GetString(wmoName);
 
-                    // Extract data we want into our own format and then write adt to disk
-                    adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _textureFolderStringTable, _jobBatch);
+                            u32 index = _wmoStringTable.AddString(wmoName);
+                        }
+
+                        std::filesystem::path adtSubPath = "Maps/" + internalName;
+
+                        // Extract data we want into our own format and then write adt to disk
+                        adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _textureFolderStringTable, _jobBatch);
+                    });
                 }
+
+                JobBatchToken token = jobBatchRunner->AddBatch(batch);
+                jobBatchTokens.enqueue(token);
             }
             else
             {
@@ -133,67 +149,86 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
         });
     }
 
-    NC_LOG_MESSAGE("Adding batch of %u jobs", mapJobBatch.GetJobCount());
+    NC_LOG_MESSAGE("Adding Map batch of %u jobs", mapJobBatch.GetJobCount());
 
-    JobBatchToken token = jobBatchRunner->AddBatch(mapJobBatch);
-    token.WaitUntilFinished();
+    JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(mapJobBatch);
+    mainBatchToken.WaitUntilFinished();
+
+    JobBatchToken token;
+    while (jobBatchTokens.try_dequeue(token))
+    {
+        token.WaitUntilFinished();
+    }
+
+    for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
+    {
+        const std::string& wmoPath = outputPath.string() + "/MapObjects/" + _wmoStringTable.GetString(i);
+        fs::path wmoFullPath = wmoPath;
+        wmoFullPath = wmoFullPath.parent_path().make_preferred();
+
+        fs::create_directories(wmoFullPath);
+    }
+
+    // Extract WMOs
+    JobBatch wmoJobBatch;
+
+    for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
+    {
+        const std::string& wmoPath = _wmoStringTable.GetString(i);
+
+        wmoJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &wmoPath, i, outputPath]()
+        {
+            const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
+            const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
+
+            std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoPath);
+            WMO_ROOT wmoRoot;
+            if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
+            {
+                std::stringstream ss;
+
+                for (u32 i = 0; i < wmoRoot.mohd.groupsNum; i++)
+                {
+                    ss << wmoGroupBasePath << std::setw(3) << std::setfill('0') << i << ".wmo";
+
+                    std::string wmoGroupPath = ss.str();
+
+                    std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupPath);
+
+                    // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
+
+                    WMO_OBJECT wmoObject;
+                    wmoObject.root = &wmoRoot;
+
+                    if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
+                    {
+                        fs::path wmoGroupPathPath = outputPath.string() + "/MapObjects/" + wmoGroupPath;
+                        wmoGroupPathPath.replace_extension(".nmo"); // .nmo
+                        wmoGroupPathPath.make_preferred();
+
+                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), _jobBatch);
+                    }
+
+                    ss.clear();
+                    ss.str("");
+                }
+
+                std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
+                wmoRoot.SaveToDisk(wmoRootPath.string(), _textureFolderStringTable, _jobBatch);
+            }
+        });
+    }
+
+    NC_LOG_MESSAGE("Adding WMO batch of %u jobs", wmoJobBatch.GetJobCount());
+
+    JobBatchToken wmoBatchToken = jobBatchRunner->AddBatch(wmoJobBatch);
+    wmoBatchToken.WaitUntilFinished();
 
     // Create Directories for Textures
     for (u32 i = 0; i < _textureFolderStringTable.GetNumStrings(); i++)
     {
         const std::string& textureFolderPath = _textureFolderStringTable.GetString(i);
         fs::create_directories(textureFolderPath);
-    }
-
-    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
-    // Extract WMOs
-    for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
-    {
-        const std::string& wmoPath = _wmoStringTable.GetString(i);
-        const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
-        const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
-
-        std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoPath);
-        WMO_ROOT wmoRoot;
-        if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
-        {
-            std::stringstream ss;
-
-            for (u32 i = 0; i < wmoRoot.mohd.groupsNum; i++)
-            {
-                ss << wmoGroupBasePath << std::setw(3) << std::setfill('0') << i << ".wmo";
-
-                std::string wmoGroupPath = ss.str();
-
-                std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupPath);
-
-                // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
-
-                WMO_OBJECT wmoObject;
-                wmoObject.root = &wmoRoot;
-
-                if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
-                {
-                    fs::path wmoGroupPathPath = outputPath.string() + "/MapObjects/" + wmoGroupPath;
-                    wmoGroupPathPath.replace_extension(".nmo"); // .nmo
-                    wmoGroupPathPath.make_preferred();
-
-                    std::filesystem::create_directories(wmoGroupPathPath.parent_path());
-
-                    wmoObject.SaveToDisk(wmoGroupPathPath.string(), _jobBatch);
-                }
-
-                ss.clear();
-                ss.str("");
-            }
-
-            std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
-
-            std::filesystem::create_directories(wmoRootPath.parent_path());
-
-            wmoRoot.SaveToDisk(wmoRootPath.string(), _jobBatch);
-        }
     }
 
     // Run file jobs

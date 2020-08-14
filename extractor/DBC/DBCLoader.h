@@ -24,11 +24,14 @@
 #pragma once
 #include <Utils/DebugHandler.h>
 #include <Utils/StringUtils.h>
+#include <Containers/StringTable.h>
 #include <sstream>
 #include <fstream>
 #include "DBCReader.h"
 #include "DBCStructures.h"
 #include "../Utils/ServiceLocator.h"
+
+namespace fs = std::filesystem;
 
 namespace DBCLoader
 {
@@ -55,39 +58,52 @@ namespace DBCLoader
         if (rows == 0)
             return false;
 
-        std::stringstream ss;
-        ss << "DELETE FROM map;" << std::endl
-            << "INSERT INTO map(id, internalName, instanceType, flags, name, expansion, maxPlayers) VALUES";
+        std::vector<DBCMap> maps;
+        maps.reserve(rows);
+
+        StringTable stringTable;
 
         for (u32 i = 0; i < rows; i++)
         {
             auto row = dbcReader->GetRow(i);
 
-            DBCMap map;
-            map.Id = row.GetUInt32(0);
-            std::string internalMapName = row.GetString(row.GetUInt32(1));
-            map.InternalName = StringUtils::EscapeString(internalMapName);
-            map.InstanceType = row.GetUInt32(2);
-            map.Flags = row.GetUInt32(3);
-            map.Name = StringUtils::EscapeString(row.GetString(row.GetUInt32(5)));
-            map.Expansion = row.GetUInt32(63);
-            map.MaxPlayers = row.GetUInt32(65);
+            u32 mapFlags = row.GetUInt32(3);
 
             // MapFlag 2, seem to be exclusive to Test / Development Maps
-            if ((map.Flags & 2) == 0)
+            if ((mapFlags & 2) == 0)
+            {
+                DBCMap& map = maps.emplace_back();
+                map.Id = row.GetUInt32(0);
+
+                std::string internalMapName = row.GetString(row.GetUInt32(1));
+                map.InternalName = stringTable.AddString(StringUtils::EscapeString(internalMapName));
+                map.InstanceType = row.GetUInt32(2);
+                map.Flags = mapFlags;
+                map.Name = stringTable.AddString(StringUtils::EscapeString(row.GetString(row.GetUInt32(5))));
+                map.Expansion = row.GetUInt32(63);
+                map.MaxPlayers = row.GetUInt32(65);
+
                 internalMapNames.push_back(internalMapName);
-
-            if (i != 0)
-                ss << ", ";
-
-            ss << "(" << map.Id << ", '" << map.InternalName << "', " << map.InstanceType << ", " << map.Flags << ", '" << map.Name << "', " << map.Expansion << ", " << map.MaxPlayers << ")";
+            }
         }
 
-        ss << ";" << std::endl;
+        u32 numMaps = static_cast<u32>(maps.size());
+        if (numMaps == 0)
+            return false;
 
-        std::filesystem::path outputPath = std::filesystem::current_path().append("ExtractedData/Sql");
-        std::ofstream output(outputPath.string() + "/Map.sql", std::ofstream::out);
-        output << ss.str();
+        fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/Maps.ndbc").make_preferred();
+        std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+
+        NDBCHeader header;
+        output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
+        output.write(reinterpret_cast<char const*>(&numMaps), sizeof(u32)); // Write number of maps
+        output.write(reinterpret_cast<char const*>(maps.data()), sizeof(DBCMap) * numMaps); // Write maps
+
+        // Serialize our StringTable and write it to the file
+        std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<1048576>();
+        stringTable.Serialize(stringTableByteBuffer.get());
+        output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
+
         output.close();
 
         return true;

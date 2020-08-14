@@ -35,14 +35,16 @@ class JobBatchRunner;
 class JobBatchToken
 {
 public:
+    JobBatchToken() : _runner(nullptr) { }
+    JobBatchToken(JobBatchRunner* runner, u32 token);
+
     bool IsFinished();
     void WaitUntilFinished();
 
 private:
-    JobBatchToken(JobBatchRunner* runner, u32 token);
 
     JobBatchRunner* _runner;
-    u32 _batchID;
+    u32 _batchID = std::numeric_limits<u32>().max();
 
     friend class JobBatchRunner;
 };

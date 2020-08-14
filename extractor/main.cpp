@@ -57,6 +57,8 @@ i32 main()
             std::filesystem::path baseFolderPath = basePath.string() + "/ExtractedData";
             std::filesystem::path sqlFolderPath = baseFolderPath.string() + "/Sql";
             std::filesystem::path mapFolderPath = baseFolderPath.string() + "/Maps";
+            std::filesystem::path ndbcFolderPath = baseFolderPath.string() + "/Ndbc";
+
             if (!std::filesystem::exists(baseFolderPath))
             {
                 std::filesystem::create_directory(baseFolderPath);
@@ -71,6 +73,11 @@ i32 main()
             {
                 std::filesystem::create_directory(mapFolderPath);
             }
+
+            if (!std::filesystem::exists(ndbcFolderPath))
+            {
+                std::filesystem::create_directory(ndbcFolderPath);
+            }
         }
 
         std::vector<std::string> internalMapNames;
@@ -83,13 +90,13 @@ i32 main()
             JobBatch& jobBatch = mapExtracter->GetJobBatch();
             jobBatchRunner->AddBatch(jobBatch);
 
-            NC_LOG_MESSAGE("Adding batch of %u jobs", jobBatch.GetJobCount());
+            NC_LOG_MESSAGE("Adding Map Textures batch of %u jobs", jobBatch.GetJobCount());
         }
 
         JobBatch interfaceBatch;
         InterfaceLoader::LoadInterface(interfaceBatch);
         jobBatchRunner->AddBatch(interfaceBatch);
-        NC_LOG_MESSAGE("Adding batch of %u jobs", interfaceBatch.GetJobCount());
+        NC_LOG_MESSAGE("Adding Interface batch of %u jobs", interfaceBatch.GetJobCount());
 
         DBCLoader::LoadEmotesText();
         DBCLoader::LoadSpell();
