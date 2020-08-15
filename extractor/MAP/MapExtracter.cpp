@@ -71,8 +71,7 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
             WDT wdt;
             if (!chunkLoader->LoadWDT(fileWDT, wdt))
             {
-                // This could happen, but for now I want to assert it in this test scenario
-                assert(false);
+                return;
             }
 
             std::filesystem::path adtPath = outputPath.string() + "/Maps/" + internalName;
@@ -139,8 +138,11 @@ void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                     });
                 }
 
-                JobBatchToken token = jobBatchRunner->AddBatch(batch);
-                jobBatchTokens.enqueue(token);
+                if (batch.GetJobCount())
+                {
+                    JobBatchToken token = jobBatchRunner->AddBatch(batch);
+                    jobBatchTokens.enqueue(token);
+                }
             }
             else
             {
