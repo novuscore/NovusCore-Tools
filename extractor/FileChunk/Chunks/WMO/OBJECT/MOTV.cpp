@@ -7,5 +7,6 @@
 
 bool MOTV::Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WMO_ROOT& wmoRoot, WMO_OBJECT& wmoObject)
 {
-    return ChunkUtils::LoadArrayOfStructs(buffer, header.size, wmoObject.motv.vertexUVs);
+    MOTVData& data = wmoObject.motv.data.emplace_back();
+    return ChunkUtils::LoadArrayOfStructs(buffer, header.size, data.vertexUVs);
 }

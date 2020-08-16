@@ -8,7 +8,12 @@ struct WMO_OBJECT;
 struct ChunkHeader;
 struct MOTV
 {
-    std::vector<vec2> vertexUVs;
+    struct MOTVData
+    {
+        std::vector<vec2> vertexUVs;
+    };
+
+    std::vector<MOTVData> data;
 
     static bool Read(std::shared_ptr<Bytebuffer>& buffer, const ChunkHeader& header, const WMO_ROOT& wmoRoot, WMO_OBJECT& wmoObject);
 };

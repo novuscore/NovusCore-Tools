@@ -9,6 +9,7 @@
 #include "../../MAP/MapObject.h"
 
 #include <tracy/Tracy.hpp>
+#include <Utils/StringUtils.h>
 
 namespace fs = std::filesystem;
 
@@ -50,14 +51,13 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
     // Write indices
     if (numIndices > 0)
     {
-        output.write(reinterpret_cast<char const*>(movi.indices.data()), sizeof(u16) * numIndices); // Write alpha maps
+        output.write(reinterpret_cast<char const*>(movi.indices.data()), sizeof(u16) * numIndices);
     }
 
     u32 numVertexPositions = static_cast<u32>(movt.vertexPosition.size());
     u32 numVertexNormals = static_cast<u32>(monr.vertexNormals.size());
-    u32 numVertexUVs = static_cast<u32>(motv.vertexUVs.size());
 
-    assert(numVertexPositions == numVertexNormals && numVertexPositions == numVertexUVs); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
+    assert(numVertexPositions == numVertexNormals); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
 
     // Write number of vertices
     output.write(reinterpret_cast<char const*>(&numVertexPositions), sizeof(u32));
@@ -69,8 +69,20 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
         output.write(reinterpret_cast<char const*>(movt.vertexPosition.data()), sizeof(vec3) * numVertexPositions);
         // Write vertexNormals
         output.write(reinterpret_cast<char const*>(monr.vertexNormals.data()), sizeof(vec3) * numVertexNormals);
+    }
+
+    u32 numUVSets = static_cast<u32>(motv.data.size());
+    // Write number of UV sets
+    output.write(reinterpret_cast<char const*>(&numUVSets), sizeof(u32));
+
+    for (MOTV::MOTVData& motvData : motv.data)
+    {
+        u32 numVertexUVs = static_cast<u32>(motvData.vertexUVs.size());
+
+        assert(numVertexPositions == numVertexUVs); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
+
         // Write vertexUVs
-        output.write(reinterpret_cast<char const*>(motv.vertexUVs.data()), sizeof(vec2) * numVertexUVs);
+        output.write(reinterpret_cast<char const*>(motvData.vertexUVs.data()), sizeof(vec2) * numVertexUVs);
     }
 
     // Write number of MOPYData
@@ -85,6 +97,7 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, JobBatch& jobBatch)
 
     // Write number of render batches
     u32 numRenderBatches = static_cast<u32>(mapObject->renderBatches.size());
+    output.write(reinterpret_cast<char const*>(&numRenderBatches), sizeof(u32));
 
     if (numRenderBatches > 0)
     {
