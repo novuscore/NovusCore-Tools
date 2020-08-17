@@ -1,7 +1,7 @@
 #include <NovusTypes.h>
 #include "MPQ/MPQLoader.h"
 #include "DBC/DBCLoader.h"
-#include "MAP/MapExtracter.h"
+#include "MAP/MapExtractor.h"
 #include "Interface/InterfaceLoader.h"
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
@@ -28,7 +28,7 @@ i32 main()
     ZoneScoped;
     std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
     std::shared_ptr<ChunkLoader> chunkLoader = std::make_shared<ChunkLoader>();
-    std::shared_ptr<MapExtracter> mapExtracter = std::make_shared<MapExtracter>();
+    std::shared_ptr<MapExtractor> mapExtracter = std::make_shared<MapExtractor>();
     std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
 
     std::shared_ptr<JobBatchRunner> jobBatchRunner = std::make_shared<JobBatchRunner>();

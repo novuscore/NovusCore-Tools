@@ -70,7 +70,7 @@ namespace DBCLoader
             u32 mapFlags = row.GetUInt32(3);
 
             // MapFlag 2, seem to be exclusive to Test / Development Maps
-            if ((mapFlags & 2) == 0)
+            //if ((mapFlags & 2) == 0)
             {
                 DBCMap& map = maps.emplace_back();
                 map.Id = row.GetUInt32(0);

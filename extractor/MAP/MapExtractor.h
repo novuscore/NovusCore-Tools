@@ -27,7 +27,7 @@
 #include "../Utils/JobBatch.h"
 #include <Containers/StringTable.h>
 
-class MapExtracter
+class MapExtractor
 {
 public:
     void ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);

@@ -1,4 +1,4 @@
-#include "MapExtracter.h"
+#include "MapExtractor.h"
 #include "../MPQ/MPQLoader.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-void MapExtracter::ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner)
+void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     ZoneScoped;
 
