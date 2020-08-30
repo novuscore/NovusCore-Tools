@@ -6,6 +6,7 @@
 #include "../Chunks/WMO/OBJECT/MOVI.h"
 #include "../Chunks/WMO/OBJECT/MOVT.h"
 #include "../Chunks/WMO/OBJECT/MONR.h"
+#include "../Chunks/WMO/OBJECT/MOCV.h"
 #include "../Chunks/WMO/OBJECT/MOTV.h"
 #include "../Chunks/WMO/OBJECT/MOBA.h"
 
@@ -20,9 +21,10 @@ struct WMO_OBJECT
     MOVI movi; // Indices
     MOVT movt; // Vertex position
     MONR monr; // Vertex normals
+    MOCV mocv; // Vertex colors
     MOTV motv; // Vertex uvs
     MOBA moba; // Render batches
 
     WMO_ROOT* root;
-    void SaveToDisk(const std::string& fileName, JobBatch& jobBatch);
+    void SaveToDisk(const std::string& fileName, const WMO_ROOT& root, JobBatch& jobBatch);
 };

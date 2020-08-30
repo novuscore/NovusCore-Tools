@@ -15,8 +15,8 @@ struct MOBA
 
         u32 startIndex; // This is an index into MOVI
         u16 indexCount;
-        u16 minIndex; // Start Vertex
-        u16 maxIndex; // Last Vertex
+        u16 firstVertex; // Start Vertex
+        u16 lastVertex; // Last Vertex
         u8 unk; // Flag?
 
         u8 materialId; // This is an index into MOMT;

@@ -65,6 +65,7 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName, StringTable& textureStrin
         MapObjectMaterial& material = mapObjectRoot->materials.emplace_back();
         material.materialType = momtData.shader;
         material.transparencyMode = momtData.blendMode;
+        material.flags = momtData.flags;
 
         if ((momtData.textureOffset1 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset1] != '\0'))
         {

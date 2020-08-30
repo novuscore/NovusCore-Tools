@@ -32,6 +32,7 @@ struct MapObjectMaterial
 {
     u16 materialType;
     u16 transparencyMode;
+    u32 flags;
     u32 textureID[3] = { INVALID_TEXTURE_ID, INVALID_TEXTURE_ID, INVALID_TEXTURE_ID };
 };
 

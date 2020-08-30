@@ -24,7 +24,7 @@
 struct MapObjectHeader
 {
     u32 token = 7236975; // UTF8 -> Binary -> Decimal for "nmo"
-    u32 version = 1;
+    u32 version = 2;
 };
 
 struct RenderBatch

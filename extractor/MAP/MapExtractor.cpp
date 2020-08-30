@@ -208,7 +208,7 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                         wmoGroupPathPath.replace_extension(".nmo"); // .nmo
                         wmoGroupPathPath.make_preferred();
 
-                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), _jobBatch);
+                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), wmoRoot,_jobBatch);
                     }
 
                     ss.clear();

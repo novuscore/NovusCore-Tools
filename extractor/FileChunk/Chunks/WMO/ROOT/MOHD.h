@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
+#include "../../ChunkHeader.h"
 
 enum class MOHDFlags
 {
@@ -13,7 +14,6 @@ enum class MOHDFlags
 };
 
 struct WMO_ROOT;
-struct ChunkHeader;
 struct MOHD
 {
     u32 texturesNum = 0;
@@ -23,7 +23,7 @@ struct MOHD
     u32 doodadNamesNum = 0;
     u32 doodadDefsNum = 0;
     u32 doodadSetsNum = 0;
-    u32 ambientColor = 0; // This is (ARGB)
+    IntColor ambientColor; // This is (ARGB)
     u32 wmoId = 0; // Reference key (WMOAreaTable)
     vec3 boundingBoxMin; // Axis Aligned Box Min
     vec3 boundingBoxMax; // Axis Aligned box Max

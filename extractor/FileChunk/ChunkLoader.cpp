@@ -67,6 +67,21 @@ ChunkLoader::ChunkLoader()
         { static_cast<u32>('MONR'), MONR::Read },
         { static_cast<u32>('MOTV'), MOTV::Read },
         { static_cast<u32>('MOBA'), MOBA::Read },
+        { static_cast<u32>('MOCV'), MOCV::Read },
+        // Implement these later
+        { static_cast<u32>('MOBS'), nullptr },
+        { static_cast<u32>('MOLR'), nullptr },
+        { static_cast<u32>('MODR'), nullptr },
+        { static_cast<u32>('MOBN'), nullptr },
+        { static_cast<u32>('MOBR'), nullptr },
+        { static_cast<u32>('MPBV'), nullptr },
+        { static_cast<u32>('MPBP'), nullptr },
+        { static_cast<u32>('MPBI'), nullptr },
+        { static_cast<u32>('MPBG'), nullptr },
+        { static_cast<u32>('MLIQ'), nullptr },
+        { static_cast<u32>('MORI'), nullptr },
+        { static_cast<u32>('MORB'), nullptr },
+
     };
 }
 
@@ -191,16 +206,16 @@ bool ChunkLoader::LoadWMO_OBJECT(std::shared_ptr<Bytebuffer>& buffer, const WMO_
         if (itr != _wmoObjectChunkToFunction.end())
         {
             if (itr->second == nullptr)
+            {
+                buffer->SkipRead(header.size);
                 continue;
+            }
+                
 
             if (!itr->second(buffer, header, wmoRoot, wmoObject))
             {
                 assert(false);
             }
-
-            // TODO: Support all Optional Chunks
-            if (header.token == 'MOBA')
-                break;
         }
         else
         {
