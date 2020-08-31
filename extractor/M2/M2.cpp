@@ -74,6 +74,8 @@ void M2File::SaveToDisk(const std::string& outputPath)
 
     // Write NumTextures & Textures
     u32 numTextures = m2.textures.size;
+    output.write(reinterpret_cast<char const*>(&numTextures), sizeof(numTextures));
+
     if (numTextures > 0)
     {
         const StringTable& textureStringTable = ServiceLocator::GetTextureExtractor()->GetStringTable();
