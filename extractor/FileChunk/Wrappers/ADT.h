@@ -36,5 +36,5 @@ struct ADT
     MTXF mtxf;
     std::vector<MapCellInfo> cells;
 
-    void SaveToDisk(const std::string& fileName, StringTable& textureFolderStringTable, JobBatch& jobBatch);
+    void SaveToDisk(const std::string& fileName);
 };

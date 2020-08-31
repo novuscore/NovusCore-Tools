@@ -14,7 +14,7 @@
 
 namespace fs = std::filesystem;
 
-void WMO_OBJECT::SaveToDisk(const std::string& fileName, const WMO_ROOT& root, JobBatch& jobBatch)
+void WMO_OBJECT::SaveToDisk(const std::string& fileName, const WMO_ROOT& root)
 {
     ZoneScoped;
 

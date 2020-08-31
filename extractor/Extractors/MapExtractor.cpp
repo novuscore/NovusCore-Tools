@@ -26,8 +26,6 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
 
     // Create base map folders
     std::filesystem::path mapFolderPath = outputPath.string() + "/Maps/";
-    if (!std::filesystem::exists(mapFolderPath))
-        std::filesystem::create_directory(mapFolderPath);
 
     std::filesystem::path mapAlphaMapFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/";
     if (!std::filesystem::exists(mapAlphaMapFolderPath))
@@ -47,13 +45,13 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
     {
         ZoneScoped;
         const std::string& internalName = internalMapNames[i];
-        mapJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, i, outputPath, internalName]()
+        mapJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, i, mapFolderPath, mapAlphaMapFolderPath, internalName]()
         {
             ZoneScopedN("MapLoader::v::Extract Maps");
 
             //NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
 
-            std::filesystem::path alphaMapOutputFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/" + internalName;
+            std::filesystem::path alphaMapOutputFolderPath = mapAlphaMapFolderPath.string() + internalName;
             if (!std::filesystem::exists(alphaMapOutputFolderPath))
                 std::filesystem::create_directory(alphaMapOutputFolderPath);
 
@@ -74,7 +72,7 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                 return;
             }
 
-            std::filesystem::path adtPath = outputPath.string() + "/Maps/" + internalName;
+            std::filesystem::path adtPath = mapFolderPath.string() + internalName;
             if (!std::filesystem::exists(adtPath))
                 std::filesystem::create_directory(adtPath);
 
@@ -134,7 +132,7 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                         std::filesystem::path adtSubPath = "Maps/" + internalName;
 
                         // Extract data we want into our own format and then write adt to disk
-                        adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap", _textureFolderStringTable, _jobBatch);
+                        adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap");
                     });
                 }
 
@@ -208,7 +206,7 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                         wmoGroupPathPath.replace_extension(".nmo"); // .nmo
                         wmoGroupPathPath.make_preferred();
 
-                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), wmoRoot,_jobBatch);
+                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), wmoRoot);
                     }
 
                     ss.clear();
@@ -216,7 +214,7 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
                 }
 
                 std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
-                wmoRoot.SaveToDisk(wmoRootPath.string(), _textureFolderStringTable, _jobBatch);
+                wmoRoot.SaveToDisk(wmoRootPath.string());
             }
         });
     }
@@ -225,16 +223,6 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
 
     JobBatchToken wmoBatchToken = jobBatchRunner->AddBatch(wmoJobBatch);
     wmoBatchToken.WaitUntilFinished();
-
-    // Create Directories for Textures
-    for (u32 i = 0; i < _textureFolderStringTable.GetNumStrings(); i++)
-    {
-        const std::string& textureFolderPath = _textureFolderStringTable.GetString(i);
-        fs::create_directories(textureFolderPath);
-    }
-
-    // Run file jobs
-    _jobBatch.RemoveDuplicates();
 
     return;
 }

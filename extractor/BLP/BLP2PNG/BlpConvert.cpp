@@ -64,9 +64,16 @@ namespace BLP
         {
             nvttFormat = nvtt::Format::Format_DXT5;
         }
-        else if (header.alphaDepth > 0)
+        else
         {
-            nvttFormat = nvtt::Format::Format_RGBA;
+            if (header.alphaDepth > 0)
+            {
+                nvttFormat = nvtt::Format::Format_DXT5;
+            }
+            else
+            {
+                nvttFormat = nvtt::Format::Format_DXT1;
+            }
         }
         
         nvtt::InputOptions inputOptions;

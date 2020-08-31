@@ -26,5 +26,5 @@ struct WMO_OBJECT
     MOBA moba; // Render batches
 
     WMO_ROOT* root;
-    void SaveToDisk(const std::string& fileName, const WMO_ROOT& root, JobBatch& jobBatch);
+    void SaveToDisk(const std::string& fileName, const WMO_ROOT& root);
 };

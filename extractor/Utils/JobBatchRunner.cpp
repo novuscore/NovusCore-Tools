@@ -110,20 +110,23 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
     while (!_shouldStop)
     {
         {
-            ZoneScopedN("WaitForJobs");
+            if (thread.getJobAttempts > 0)
+            {
+                ZoneScopedN("WaitForJobs");
 
-            // Sleep/Yield to not take up all CPU
-            if (thread.getJobAttempts > 25 && thread.getJobAttempts < 100) // Between try 25 and 100, yield
-            {
-                std::this_thread::yield();
-            }
-            else if (thread.getJobAttempts < 1000) // Between try 100 and 1000, 100 checks per second
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
-            else // Over 1000 attempts, 10 checks per second
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                // Sleep/Yield to not take up all CPU
+                if (thread.getJobAttempts > 25 && thread.getJobAttempts < 100) // Between try 25 and 100, yield
+                {
+                    std::this_thread::yield();
+                }
+                else if (thread.getJobAttempts < 1000) // Between try 100 and 1000, 100 checks per second
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                }
+                else // Over 1000 attempts, 10 checks per second
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
             }
         }
         

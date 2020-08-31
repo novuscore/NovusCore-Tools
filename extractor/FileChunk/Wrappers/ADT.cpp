@@ -6,17 +6,19 @@
 #include <Utils/StringUtils.h>
 #include <Utils/DebugHandler.h>
 
-#include "../../MPQ/MPQLoader.h"
 #include "../../Utils/ServiceLocator.h"
 #include "../../Utils/JobBatch.h"
-#include "../../MAP/Chunk.h"
 #include "../../BLP/BLP2PNG/BlpConvert.h"
+
+#include "../../MPQ/MPQLoader.h"
+#include "../../Extractors/TextureExtractor.h"
+#include "../../MAP/Chunk.h"
 
 #include <tracy/Tracy.hpp>
 
 namespace fs = std::filesystem;
 
-void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStringTable, JobBatch& jobBatch)
+void ADT::SaveToDisk(const std::string& fileName)
 {
     ZoneScoped;
 
@@ -40,8 +42,10 @@ void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStri
         textureNameBuffer.GetString(textureName);
     }
 
-    // Create a StringTable for texture names
+    // Create a StringTable for alpha map texture names
     StringTable stringTable;
+
+    const StringTable& textureStringTable = ServiceLocator::GetTextureExtractor()->GetStringTable();
 
     // Insert data from ADT into Chunk here
     for (u16 i = 0; i < MAP_CELLS_PER_CHUNK; i++)
@@ -78,10 +82,16 @@ void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStri
             fs::path texturePath = textureName;
             texturePath.replace_extension("dds");
 
-            u32 stringTableIndex = stringTable.AddString(texturePath.string());
+            std::string texturePathStr = texturePath.string();
+            std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
+
+            u32 textureNameIndex = std::numeric_limits<u32>().max();
+
+            u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
+            textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
 
             // Store the stringTableIndex in the cell
-            cell.layers[j].textureId = stringTableIndex;
+            cell.layers[j].textureId = textureNameIndex;
 
             // If the layer has alpha data, add it to our per-chunk alphamap
             if (j > 0)
@@ -104,85 +114,6 @@ void ADT::SaveToDisk(const std::string& fileName, StringTable& textureFolderStri
         // TODO: Specular?
 
         chunk->cells[i] = cell;
-    }
-
-    // Extract all textures referenced by this ADT
-    int textureIndex = 0;
-    for(const std::string& textureName : textureNames)
-    {
-        bool loadSpecular = true;
-        if (mtxf.data.size() > textureIndex)
-        {
-            const MTXF::MTXFData& textureFlags = mtxf.data[textureIndex++];
-
-            // We don't load specular if the texture is a cubemap
-            if (textureFlags.flags & static_cast<u32>(MTXFFlags::UseCubemap))
-            {
-                loadSpecular = false;
-            }
-        }
-        
-        // Extract diffuse texture
-        {
-            u32 textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.size());
-
-            fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(textureName);
-            outputPath = outputPath.make_preferred().replace_extension("dds");
-
-            textureFolderStringTable.AddString(outputPath.parent_path().string());
-
-            jobBatch.AddJob(textureNameHash, [textureName, outputPath]()
-            {
-                ZoneScopedN("ADT::SaveToFile::Extract Diffuse Texture");
-
-                std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-                std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(textureName);
-
-                if (byteBuffer == nullptr) // The bytebuffer return is nullptr if the file didn't exist
-                    return;
-
-                // Convert from BLP to DDS
-                BLP::BlpConvert blpConvert;
-                blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
-            });
-        }
-        
-        // Also extract specular if we should
-        if (loadSpecular)
-        {
-            fs::path specularPath(textureName);
-
-            std::string filename = specularPath.filename().stem().string();
-            filename += "_s.blp";
-            specularPath = specularPath.replace_filename(filename);
-
-            {
-                std::string specularName = specularPath.string();
-                u32 textureNameHash = StringUtils::fnv1a_32(specularName.c_str(), specularName.size());
-
-                fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(specularName).make_preferred();
-                outputPath = outputPath.make_preferred().replace_extension("dds");
-
-                textureFolderStringTable.AddString(outputPath.parent_path().string());
-
-                jobBatch.AddJob(textureNameHash, [specularName, outputPath]()
-                {
-                    ZoneScopedN("ADT::SaveToFile::Extract Specular Texture");
-
-                    std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-                    std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(specularName);
-
-                    if (byteBuffer == nullptr) // The bytebuffer return is nullptr if the file didn't exist
-                        return;
-
-                    BLP::BlpConvert blpConvert;
-                    blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
-                });
-            }
-            
-        }
-
-        textureIndex++;
     }
 
     // We need to get the name of all the WMOs this ADT uses

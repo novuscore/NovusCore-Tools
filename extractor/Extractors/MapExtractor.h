@@ -24,10 +24,15 @@
 #pragma once
 #include <Utils/DebugHandler.h>
 
-class JobBatch;
+#include "../Utils/JobBatch.h"
+#include <Containers/StringTable.h>
 
-class InterfaceLoader
+class MapExtractor
 {
 public:
-    static void LoadInterface(JobBatch& jobBatch);
+    void ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner);
+
+private:
+    // Create a StringTable for WMO names
+    StringTable _wmoStringTable;
 };

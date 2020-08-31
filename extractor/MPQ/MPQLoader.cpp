@@ -218,7 +218,7 @@ void MPQLoader::GetFileAsync(std::string_view file, std::function<void(std::shar
     _fileJobs.enqueue(fileJob);
 }
 
-void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> callback)
+void MPQLoader::GetFiles(std::string pattern, std::function<void(char*, size_t)> callback)
 {
     ZoneScoped;
     std::vector<u32> foundFiles;
@@ -234,7 +234,8 @@ void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> c
 
         do
         {
-            u32 nameHash = StringUtils::fnv1a_32(data.cFileName, strlen(data.cFileName));
+            size_t fileNameLen = strlen(data.cFileName);
+            u32 nameHash = StringUtils::fnv1a_32(data.cFileName, fileNameLen);
             if (std::find(foundFiles.begin(), foundFiles.end(), nameHash) != foundFiles.end())
                 continue;
 
@@ -243,7 +244,7 @@ void MPQLoader::GetFiles(std::string pattern, std::function<void(std::string)> c
             if ((data.dwFileFlags & MPQ_FILE_DELETE_MARKER) == MPQ_FILE_DELETE_MARKER)
                 continue;
 
-            callback(data.cFileName);
+            callback(&data.cFileName[0], fileNameLen);
         } while (SFileFindNextFile(searchHandle, &data));
 
         SFileFindClose(searchHandle);

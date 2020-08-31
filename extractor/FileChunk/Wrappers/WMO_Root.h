@@ -39,5 +39,5 @@ struct WMO_ROOT
     MFOG mfog;
     MCVP mcvp;
 
-    void SaveToDisk(const std::string& fileName, StringTable& textureStringTable, JobBatch& jobBatch);
+    void SaveToDisk(const std::string& fileName);
 };

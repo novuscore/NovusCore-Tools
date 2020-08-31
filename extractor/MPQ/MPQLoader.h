@@ -30,7 +30,7 @@ public:
     std::shared_ptr<Bytebuffer> GetFile(std::string_view file);
     void GetFileAsync(std::string_view file, std::function<void(std::shared_ptr<Bytebuffer>)> callback);
 
-    void GetFiles(std::string pattern, std::function<void(std::string)> callback);
+    void GetFiles(std::string pattern, std::function<void(char*, size_t)> callback);
 
     void __Test__();
 
