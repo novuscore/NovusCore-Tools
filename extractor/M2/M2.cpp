@@ -106,6 +106,16 @@ void M2File::SaveToDisk(const std::string& outputPath)
         }
     }
 
+
+    // Write numTextureCombos & TextureCombos
+    u32 numTextureCombos = m2.textureCombos.size;
+    output.write(reinterpret_cast<char const*>(&numTextureCombos), sizeof(numTextureCombos));
+
+    if (numTextureCombos > 0)
+    {
+        output.write(reinterpret_cast<char const*>(&m2Buffer->GetDataPointer()[m2.textureCombos.offset]), sizeof(u16) * numTextureCombos);
+    }
+
     // Write NumSkinProfiles
     u32 numSkinProfiles = m2.numSkinProfiles;
     output.write(reinterpret_cast<char const*>(&numSkinProfiles), sizeof(numSkinProfiles));
@@ -170,12 +180,16 @@ void M2File::SaveToDisk(const std::string& outputPath)
                     u16 skinSectionIndex = skinBatch->skinSectionIndex;
                     u16 geosetIndex = skinBatch->geosetIndex;
                     u16 materialIndex = skinBatch->materialIndex;
+                    u16 textureCount = skinBatch->textureCount;
+                    u16 textureComboIndex = skinBatch->textureComboIndex;
 
                     output.write(reinterpret_cast<char const*>(&flags), sizeof(flags));
                     output.write(reinterpret_cast<char const*>(&shaderId), sizeof(shaderId));
                     output.write(reinterpret_cast<char const*>(&skinSectionIndex), sizeof(skinSectionIndex));
                     output.write(reinterpret_cast<char const*>(&geosetIndex), sizeof(geosetIndex));
                     output.write(reinterpret_cast<char const*>(&materialIndex), sizeof(materialIndex));
+                    output.write(reinterpret_cast<char const*>(&textureCount), sizeof(textureCount));
+                    output.write(reinterpret_cast<char const*>(&textureComboIndex), sizeof(textureComboIndex));
                 }
             }
         }
