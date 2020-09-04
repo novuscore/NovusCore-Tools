@@ -8,10 +8,10 @@ struct MCCV
 {
     struct MCCVEntry
     {
-        u8 blue;
-        u8 green;
-        u8 red;
-        u8 alpha;
+        u8 blue = 127;
+        u8 green = 127;
+        u8 red = 127;
+        u8 alpha = 127;
     } entries[9*9+8*8];
 };
 #pragma pack(pop)

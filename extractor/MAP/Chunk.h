@@ -70,7 +70,7 @@ struct MapObjectPlacement
 struct MapChunkHeader
 {
     u32 token = MAP_CHUNK_TOKEN;
-    u32 version = 2;
+    u32 version = 3;
 };
 
 struct Chunk

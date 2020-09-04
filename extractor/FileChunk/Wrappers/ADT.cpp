@@ -54,9 +54,10 @@ void ADT::SaveToDisk(const std::string& fileName)
         cell.hole = cells[i].mcnk.holesLowRes;
         cell.areaId = cells[i].mcnk.areaId;
         
-        // Height data
+        // Per vertex in the cell
         for (u16 j = 0; j < CELL_TOTAL_GRID_SIZE; j++)
         {
+            // Height data
             f32 height = cells[i].mcvt.height[j] + cells[i].mcnk.position.z;
 
             cell.heightData[j] = height;
@@ -65,6 +66,16 @@ void ADT::SaveToDisk(const std::string& fileName)
                 chunk->heightHeader.gridMinHeight = height;
             if (height > chunk->heightHeader.gridMaxHeight)
                 chunk->heightHeader.gridMaxHeight = height;
+
+            // Normal data, this is swizzled read https://wowdev.wiki/ADT/v18#MCNR_sub-chunk
+            cell.normalData[j][0] = cells[i].mcnr.entries[j].normal[0];
+            cell.normalData[j][1] = cells[i].mcnr.entries[j].normal[2];
+            cell.normalData[j][2] = cells[i].mcnr.entries[j].normal[1];
+
+            // Color data
+            cell.colorData[j][0] = cells[i].mccv.entries[j].blue;
+            cell.colorData[j][1] = cells[i].mccv.entries[j].green;
+            cell.colorData[j][2] = cells[i].mccv.entries[j].red;
         }
 
         // Layers

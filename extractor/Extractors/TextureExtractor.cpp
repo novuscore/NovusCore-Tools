@@ -8,10 +8,10 @@
 #include <fstream>
 #include <tracy/Tracy.hpp>
 
+constexpr bool extractTextures = true;
+
 void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
-    bool extractTextures = true;
-
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     NC_LOG_SUCCESS("Fetching Textures");

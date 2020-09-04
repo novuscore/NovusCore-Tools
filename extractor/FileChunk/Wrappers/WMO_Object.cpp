@@ -49,7 +49,7 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, const WMO_ROOT& root)
     {
         vec3 normal = monr.vertexNormals[i];
 
-        normal = vec3(normal.x, normal.z, normal.y);
+        normal = vec3(-normal.x, normal.z, -normal.y);
 
         monr.vertexNormals[i] = normal;
     }
