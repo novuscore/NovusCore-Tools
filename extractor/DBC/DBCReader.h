@@ -79,9 +79,9 @@ public:
             return *reinterpret_cast<i64*>(offset + field * 4);
         }
 
-        std::string GetString(u32 stringOffset) const
+        std::string GetString(u32 field) const
         {
-            return reinterpret_cast<char*>(file._stringTable + stringOffset);
+            return reinterpret_cast<char*>(file._stringTable + GetUInt32(field));
         }
 
     private:

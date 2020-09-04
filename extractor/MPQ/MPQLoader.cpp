@@ -133,7 +133,7 @@ bool MPQLoader::Load()
             return a.replace_extension() < b.replace_extension();
         }
     );
-    mpqPaths.insert(mpqPaths.end(), localeMPQPaths.begin(), localeMPQPaths.end());
+    mpqPaths.insert(mpqPaths.begin(), localeMPQPaths.begin(), localeMPQPaths.end());
     std::reverse(mpqPaths.begin(), mpqPaths.end());
     
     for (const fs::path& mpqPath : mpqPaths)

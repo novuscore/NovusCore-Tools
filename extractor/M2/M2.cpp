@@ -106,6 +106,23 @@ void M2File::SaveToDisk(const std::string& outputPath)
         }
     }
 
+    // Write NumMaterials & Materials
+    u32 numMaterials = m2.materials.size;
+    output.write(reinterpret_cast<char const*>(&numMaterials), sizeof(numMaterials));
+
+    if (numMaterials > 0)
+    {
+        output.write(reinterpret_cast<char const*>(&m2Buffer->GetDataPointer()[m2.materials.offset]), sizeof(M2Material) * numMaterials);
+    }
+
+    // Write numTextureIndicesById & TextureIndicesById
+    u32 numTextureIndicesById = m2.textureIndicesById.size;
+    output.write(reinterpret_cast<char const*>(&numTextureIndicesById), sizeof(numTextureIndicesById));
+
+    if (numTextureIndicesById > 0)
+    {
+        output.write(reinterpret_cast<char const*>(&m2Buffer->GetDataPointer()[m2.textureIndicesById.offset]), sizeof(u16) * numTextureIndicesById);
+    }
 
     // Write numTextureCombos & TextureCombos
     u32 numTextureCombos = m2.textureCombos.size;
@@ -117,8 +134,9 @@ void M2File::SaveToDisk(const std::string& outputPath)
     }
 
     // Write NumSkinProfiles
-    u32 numSkinProfiles = m2.numSkinProfiles;
+    u32 numSkinProfiles = m2.numSkinProfiles > 0;
     output.write(reinterpret_cast<char const*>(&numSkinProfiles), sizeof(numSkinProfiles));
+
     for (u32 i = 0; i < numSkinProfiles; i++)
     {
         M2SkinFile& skinFile = skinFiles[i];
@@ -162,7 +180,6 @@ void M2File::SaveToDisk(const std::string& outputPath)
             for (u32 j = 0; j < skin.subMeshes.size; j++)
             {
                 skinSelection = skin.subMeshes.GetElement(skinBuffer, j);
-                skinBatch = skin.batches.GetElement(skinBuffer, j);
 
                 // Write SkinSelection
                 {
@@ -172,6 +189,11 @@ void M2File::SaveToDisk(const std::string& outputPath)
                     output.write(reinterpret_cast<char const*>(&indexStart), sizeof(indexStart));
                     output.write(reinterpret_cast<char const*>(&indexCount), sizeof(indexCount));
                 }
+            }
+
+            for (u32 j = 0; j < skin.subMeshes.size; j++)
+            {
+                skinBatch = skin.batches.GetElement(skinBuffer, j);
 
                 // Write SkinBatch
                 {

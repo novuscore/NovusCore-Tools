@@ -17,7 +17,7 @@
 
 namespace fs = std::filesystem;
 
-void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::shared_ptr<JobBatchRunner> jobBatchRunner)
+void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     ZoneScoped;
 
@@ -34,17 +34,19 @@ void MapExtractor::ExtractMaps(std::vector<std::string> internalMapNames, std::s
     JobBatch mapJobBatch;
 
     std::vector<JobBatch> mapSubJobBatches;
-    mapSubJobBatches.resize(internalMapNames.size());
+
+    std::vector<DBCMap> maps = dbcExtractor->GetMaps();
+    mapSubJobBatches.resize(maps.size());
 
     moodycamel::ConcurrentQueue<JobBatchToken> jobBatchTokens;
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
-    for (size_t i = 0; i < internalMapNames.size(); i++)
+    for (size_t i = 0; i < maps.size(); i++)
     {
         ZoneScoped;
-        const std::string& internalName = internalMapNames[i];
+        const std::string& internalName =  dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
         mapJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, i, mapFolderPath, mapAlphaMapFolderPath, internalName]()
         {
             ZoneScopedN("MapLoader::v::Extract Maps");

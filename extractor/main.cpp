@@ -1,6 +1,6 @@
 #include <NovusTypes.h>
 #include "MPQ/MPQLoader.h"
-#include "DBC/DBCLoader.h"
+#include "Extractors/DBCExtractor.h"
 #include "Extractors/TextureExtractor.h"
 #include "Extractors/MapExtractor.h"
 #include "Extractors/M2Extractor.h"
@@ -29,6 +29,7 @@ i32 main()
     ZoneScoped;
     std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
     std::shared_ptr<ChunkLoader> chunkLoader = std::make_shared<ChunkLoader>();
+    std::shared_ptr<DBCExtractor> dbcExtractor = std::make_shared<DBCExtractor>();
     std::shared_ptr<TextureExtractor> textureExtractor = std::make_shared<TextureExtractor>();
     std::shared_ptr<MapExtractor> mapExtractor = std::make_shared<MapExtractor>();
     std::shared_ptr<M2Extractor> m2Extractor = std::make_shared<M2Extractor>();
@@ -57,7 +58,6 @@ i32 main()
     {
         std::filesystem::path basePath = std::filesystem::current_path();
         std::filesystem::path baseFolderPath = basePath.string() + "/ExtractedData";
-        std::filesystem::path sqlFolderPath = baseFolderPath.string() + "/Sql";
         std::filesystem::path ndbcFolderPath = baseFolderPath.string() + "/Ndbc";
         std::filesystem::path textureFolderPath = baseFolderPath.string() + "/Textures";
         std::filesystem::path mapFolderPath = baseFolderPath.string() + "/Maps";
@@ -68,11 +68,6 @@ i32 main()
             if (!std::filesystem::exists(baseFolderPath))
             {
                 std::filesystem::create_directory(baseFolderPath);
-            }
-
-            if (!std::filesystem::exists(sqlFolderPath))
-            {
-                std::filesystem::create_directory(sqlFolderPath);
             }
 
             if (!std::filesystem::exists(ndbcFolderPath))
@@ -98,19 +93,13 @@ i32 main()
 
         jobBatchRunner->Start();
         {
+            dbcExtractor->ExtractDBCs(jobBatchRunner);
             textureExtractor->ExtractTextures(jobBatchRunner);
-
-            std::vector<std::string> internalMapNames;
-            if (DBCLoader::LoadMap(internalMapNames))
             {
-                mapExtractor->ExtractMaps(internalMapNames, jobBatchRunner);
+                mapExtractor->ExtractMaps(dbcExtractor, jobBatchRunner);
+                m2Extractor->ExtractM2s(jobBatchRunner);
+
             }
-
-            m2Extractor->ExtractM2s(jobBatchRunner);
-
-            DBCLoader::LoadEmotesText();
-            DBCLoader::LoadSpell();
-            
             textureExtractor->CreateTextureStringTableFile(textureFolderPath);
         }
         jobBatchRunner->Stop();
