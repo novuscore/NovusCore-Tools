@@ -13,10 +13,14 @@ namespace fs = std::filesystem;
 void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     auto& globalData = ServiceLocator::GetGlobalData();
+
+    json& m2Config = globalData->config.GetJsonObjectByKey("M2");
+    if (m2Config["Extract"] == false)
+        return;
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     JobBatch m2JobBatch;
-
     mpqLoader->GetFiles("*.m2", [&](char* fileName, size_t fileNameLength)
     {
         std::string fileNameStr = fileName;

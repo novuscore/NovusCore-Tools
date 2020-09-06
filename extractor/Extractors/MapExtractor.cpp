@@ -25,31 +25,37 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     NC_LOG_MESSAGE("Extracting ADTs...");
     auto& globalData = ServiceLocator::GetGlobalData();
 
+    json& mapConfig = globalData->config.GetJsonObjectByKey("Map");
+    if (mapConfig["Extract"] == false)
+        return;
+
     std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
     std::filesystem::create_directories(mapAlphaMapPath);
 
+    const std::vector<DBCMap>& maps = globalData->dbcExtractor->GetMaps();
+
+    size_t mapNames = mapConfig["MapNames"].size();
+    size_t numMaps = mapNames ? mapNames : maps.size();
+
     JobBatch mapJobBatch;
-
     std::vector<JobBatch> mapSubJobBatches;
-
-    std::vector<DBCMap> maps = globalData->dbcExtractor->GetMaps();
-    mapSubJobBatches.resize(maps.size());
+    mapSubJobBatches.resize(numMaps);
 
     moodycamel::ConcurrentQueue<JobBatchToken> jobBatchTokens;
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
     std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
-    for (size_t i = 0; i < maps.size(); i++)
+    for (size_t i = 0; i < numMaps; i++)
     {
         ZoneScoped;
-        const std::string& internalName = globalData->dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
+        const std::string& internalName = mapNames ? mapConfig["MapNames"][i] : globalData->dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
 
         // Create Folders for the Map & Map's Alpha Map
         std::filesystem::create_directory(globalData->mapPath / internalName);
         std::filesystem::create_directory(mapAlphaMapPath / internalName);
 
-        mapJobBatch.AddJob(0, [this, &globalData, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, &internalName, i]()
+        mapJobBatch.AddJob(0, [this, &globalData, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, internalName, i]()
         {
             ZoneScopedN("MapLoader::Extract Maps");
 

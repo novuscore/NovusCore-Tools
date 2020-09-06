@@ -9,8 +9,6 @@
 #include <tracy/Tracy.hpp>
 #include "../GlobalData.h"
 
-constexpr bool extractTextures = true;
-
 void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     auto& globalData = ServiceLocator::GetGlobalData();
@@ -30,42 +28,43 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
         _textureStringTable.AddString(texturePathStr);
     });
 
-    if (extractTextures)
+    // Check if we should extract the textures (We still need to build the stringtable above)
+    json& textureConfig = globalData->config.GetJsonObjectByKey("Texture");
+    if (textureConfig["Extract"] == false)
+        return;
+
+    JobBatch textureJobBatch;
+    for (u32 i = 0; i < _textureStringTable.GetNumStrings(); i++)
     {
-        JobBatch textureJobBatch;
+        const std::string& texturePath = _textureStringTable.GetString(i);
 
-        for (u32 i = 0; i < _textureStringTable.GetNumStrings(); i++)
+        fs::path outputPath = (globalData->texturePath / texturePath).make_preferred();
+        fs::path textureFilePath = texturePath;
+        textureFilePath.replace_extension("blp");
+
+        // Create Directories for the texture
+        fs::create_directories(outputPath.parent_path());
+
+        textureJobBatch.AddJob(0, [textureFilePath, outputPath]()
         {
-            const std::string& texturePath = _textureStringTable.GetString(i);
+            ZoneScopedN("TextureExtractor::Extract Texture");
 
-            fs::path outputPath = (globalData->texturePath / texturePath).make_preferred();
-            fs::path textureFilePath = texturePath;
-            textureFilePath.replace_extension("blp");
+            std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+            std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(textureFilePath.string());
 
-            // Create Directories for the texture
-            fs::create_directories(outputPath.parent_path());
+            if (byteBuffer == nullptr || byteBuffer->size == 0) // The bytebuffer return is nullptr if the file didn't exist
+                return;
 
-            textureJobBatch.AddJob(0, [textureFilePath, outputPath]()
-            {
-                ZoneScopedN("TextureExtractor::Extract Texture");
-
-                std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-                std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(textureFilePath.string());
-
-                if (byteBuffer == nullptr || byteBuffer->size == 0) // The bytebuffer return is nullptr if the file didn't exist
-                    return;
-
-                // Convert from BLP to DDS
-                BLP::BlpConvert blpConvert;
-                blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
-            });
-        }
-
-        NC_LOG_MESSAGE("Adding Textures batch of %u jobs", textureJobBatch.GetJobCount());
-
-        JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(textureJobBatch);
-        mainBatchToken.WaitUntilFinished();
+            // Convert from BLP to DDS
+            BLP::BlpConvert blpConvert;
+            blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
+        });
     }
+
+    NC_LOG_MESSAGE("Adding Textures batch of %u jobs", textureJobBatch.GetJobCount());
+
+    JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(textureJobBatch);
+    mainBatchToken.WaitUntilFinished();
 }
 
 void TextureExtractor::CreateTextureStringTableFile()

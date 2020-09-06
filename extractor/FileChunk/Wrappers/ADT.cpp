@@ -161,6 +161,9 @@ void ADT::SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& fi
 
     // Convert alphamap data into a texture
     const std::string alphaMapOutput = ((globalData->texturePath / "ChunkAlphaMaps/Maps" / filePath).make_preferred().replace_extension("dds")).string();
+
+    json& mapConfig = globalData->config.GetJsonObjectByKey("Map");
+    if (mapConfig["ExtractChunkAlphaMaps"] == true)
     {
         ZoneScopedN("ADT::SaveToFile::Convert Alphamap Texture");
         
@@ -175,7 +178,7 @@ void ADT::SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& fi
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {
-        printf("Failed to create map file. Check admin permissions\n");
+        NC_LOG_ERROR("Failed to create map file. Check admin permissions");
         return;
     }
 

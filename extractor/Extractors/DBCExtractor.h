@@ -18,11 +18,11 @@ class DBCExtractor
 public:
     void ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner);
 
-    const std::vector<DBCMap> GetMaps() { return _maps; }
-    const std::vector<DBCCreatureModelData> GetCreatureModelDatas() { return _creatureModelDatas; }
-    const std::vector<DBCCreatureDisplayInfo> GetCreatureDisplayInfos() { return _creatureDisplayInfos; }
-    const std::vector<DBCEmotesText> GetEmotesTexts() { return _emotesTexts; }
-    const std::vector<DBCSpell> GetSpells() { return _spells; }
+    const std::vector<DBCMap>& GetMaps() { return _maps; }
+    const std::vector<DBCCreatureModelData>& GetCreatureModelDatas() { return _creatureModelDatas; }
+    const std::vector<DBCCreatureDisplayInfo>& GetCreatureDisplayInfos() { return _creatureDisplayInfos; }
+    const std::vector<DBCEmotesText>& GetEmotesTexts() { return _emotesTexts; }
+    const std::vector<DBCSpell>& GetSpells() { return _spells; }
 
     StringTable& GetStringTable() { return _dbcStringTable; }
 

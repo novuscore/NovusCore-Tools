@@ -85,6 +85,11 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
 
     fs::path outputPath = globalData->ndbcPath / "Maps.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
 
     NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
@@ -150,6 +155,11 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
 
     fs::path outputPath = globalData->ndbcPath / "CreatureModelData.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
 
     NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
@@ -207,6 +217,11 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
 
     fs::path outputPath = globalData->ndbcPath / "CreatureDisplayInfo.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
 
     NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
@@ -249,6 +264,11 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
 
     fs::path outputPath = globalData->ndbcPath / "EmotesText.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
 
     NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
@@ -454,6 +474,11 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
 
     fs::path outputPath = globalData->ndbcPath / "Spell.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
 
     NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header

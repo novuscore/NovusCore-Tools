@@ -8,8 +8,11 @@
 #include "FileChunk/ChunkLoader.h"
 #include "Utils/ServiceLocator.h"
 #include "Utils/JobBatchRunner.h"
+#include <Utils/JsonConfig.h>
 #include <tracy/Tracy.hpp>
 
+#include <fstream>
+#include <sstream>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -50,6 +53,33 @@ i32 main()
 
         }
     */
+
+    fs::path configPath = globalData->currentPath / "dataextractor.json";
+    json config;
+
+    // Default Config
+    {
+        config["Texture"] =
+        {
+            {"Extract", true}
+        };
+
+        config["Map"] =
+        {
+            {"Extract", true},
+            {"ExtractChunkAlphaMaps", true},
+            {"MapNames", json::array()}
+        };
+
+        config["M2"] =
+        {
+            {"Extract", true}
+        };
+    }
+
+    /* Load Database Config Handler for server */
+    if (!globalData->config.LoadOrCreate(configPath, config))
+        return 0;
 
     if (!mpqLoader->Load())
     {

@@ -2,6 +2,7 @@
 #include <NovusTypes.h>
 #include <string>
 #include <filesystem>
+#include <Utils/JsonConfig.h>
 #include "Extractors/DBCExtractor.h"
 #include "Extractors/TextureExtractor.h"
 #include "Extractors/MapExtractor.h"
@@ -22,7 +23,8 @@ public:
         nm2Path.make_preferred();
     }
 
-    fs::path extractedDataPath = fs::current_path() / "ExtractedData";
+    fs::path currentPath = fs::current_path();
+    fs::path extractedDataPath = currentPath / "ExtractedData";
     fs::path ndbcPath = extractedDataPath / "Ndbc";
     fs::path texturePath = extractedDataPath / "Textures";
     fs::path mapPath = extractedDataPath / "Maps";
@@ -33,4 +35,6 @@ public:
     std::shared_ptr<TextureExtractor> textureExtractor = std::make_shared<TextureExtractor>();
     std::shared_ptr<MapExtractor> mapExtractor = std::make_shared<MapExtractor>();
     std::shared_ptr<M2Extractor> m2Extractor = std::make_shared<M2Extractor>();
+
+    JsonConfig config;
 };
