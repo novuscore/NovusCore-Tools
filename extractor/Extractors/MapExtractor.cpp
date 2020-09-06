@@ -1,4 +1,5 @@
 #include "MapExtractor.h"
+#include "../GlobalData.h"
 #include "../MPQ/MPQLoader.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
@@ -17,25 +18,21 @@
 
 namespace fs = std::filesystem;
 
-void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::shared_ptr<JobBatchRunner> jobBatchRunner)
+void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     ZoneScoped;
 
     NC_LOG_MESSAGE("Extracting ADTs...");
-    std::filesystem::path outputPath = fs::current_path().append("ExtractedData");
+    auto& globalData = ServiceLocator::GetGlobalData();
 
-    // Create base map folders
-    std::filesystem::path mapFolderPath = outputPath.string() + "/Maps/";
-
-    std::filesystem::path mapAlphaMapFolderPath = outputPath.string() + "/Textures/ChunkAlphaMaps/Maps/";
-    if (!std::filesystem::exists(mapAlphaMapFolderPath))
-        std::filesystem::create_directories(mapAlphaMapFolderPath);
+    std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
+    std::filesystem::create_directories(mapAlphaMapPath);
 
     JobBatch mapJobBatch;
 
     std::vector<JobBatch> mapSubJobBatches;
 
-    std::vector<DBCMap> maps = dbcExtractor->GetMaps();
+    std::vector<DBCMap> maps = globalData->dbcExtractor->GetMaps();
     mapSubJobBatches.resize(maps.size());
 
     moodycamel::ConcurrentQueue<JobBatchToken> jobBatchTokens;
@@ -46,16 +43,15 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
     for (size_t i = 0; i < maps.size(); i++)
     {
         ZoneScoped;
-        const std::string& internalName =  dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
-        mapJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, i, mapFolderPath, mapAlphaMapFolderPath, internalName]()
+        const std::string& internalName = globalData->dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
+
+        // Create Folders for the Map & Map's Alpha Map
+        std::filesystem::create_directory(globalData->mapPath / internalName);
+        std::filesystem::create_directory(mapAlphaMapPath / internalName);
+
+        mapJobBatch.AddJob(0, [this, &globalData, &mpqLoader, &chunkLoader, &jobBatchRunner, &mapSubJobBatches, &jobBatchTokens, &internalName, i]()
         {
-            ZoneScopedN("MapLoader::v::Extract Maps");
-
-            //NC_LOG_MESSAGE("Extracting %s", internalName.c_str());
-
-            std::filesystem::path alphaMapOutputFolderPath = mapAlphaMapFolderPath.string() + internalName;
-            if (!std::filesystem::exists(alphaMapOutputFolderPath))
-                std::filesystem::create_directory(alphaMapOutputFolderPath);
+            ZoneScopedN("MapLoader::Extract Maps");
 
             std::string fileName = "";
             std::stringstream fileNameStream;
@@ -70,13 +66,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
 
             WDT wdt;
             if (!chunkLoader->LoadWDT(fileWDT, wdt))
-            {
                 return;
-            }
-
-            std::filesystem::path adtPath = mapFolderPath.string() + internalName;
-            if (!std::filesystem::exists(adtPath))
-                std::filesystem::create_directory(adtPath);
 
             if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
             {
@@ -106,7 +96,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
 
                     std::string filePath = filePathStream.str();
 
-                    batch.AddJob(0, [this, &mpqLoader, &chunkLoader, wdt, x, y, filePath, fileName, internalName]()
+                    batch.AddJob(0, [this, &globalData, &mpqLoader, &chunkLoader, wdt, x, y, filePath, fileName, internalName]()
                     {
                         ZoneScoped;
 
@@ -131,10 +121,10 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
                             u32 index = _wmoStringTable.AddString(wmoName);
                         }
 
-                        std::filesystem::path adtSubPath = "Maps/" + internalName;
+                        std::filesystem::path adtSubPath =  internalName;
 
                         // Extract data we want into our own format and then write adt to disk
-                        adt.SaveToDisk(adtSubPath.string() + "/" + fileName + ".nmap");
+                        adt.SaveToDisk(globalData, adtSubPath / (fileName + ".nmap"));
                     });
                 }
 
@@ -164,11 +154,10 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
 
     for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
     {
-        const std::string& wmoPath = outputPath.string() + "/MapObjects/" + _wmoStringTable.GetString(i);
-        fs::path wmoFullPath = wmoPath;
-        wmoFullPath = wmoFullPath.parent_path().make_preferred();
+        const std::string& wmoFilePath = _wmoStringTable.GetString(i);
 
-        fs::create_directories(wmoFullPath);
+        fs::path wmoPath = (globalData->wmoPath / wmoFilePath).make_preferred();
+        fs::create_directories(wmoPath.parent_path());
     }
 
     // Extract WMOs
@@ -176,14 +165,14 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
 
     for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
     {
-        const std::string& wmoPath = _wmoStringTable.GetString(i);
+        const std::string& wmoFilePath = _wmoStringTable.GetString(i);
 
-        wmoJobBatch.AddJob(0, [this, &mpqLoader, &chunkLoader, &wmoPath, i, outputPath]()
+        wmoJobBatch.AddJob(0, [this, &globalData, &mpqLoader, &chunkLoader, &wmoFilePath, i]()
         {
-            const std::string wmoBasePath = wmoPath.substr(0, wmoPath.length() - 4); // -3 removing (.wmo)
+            const std::string wmoBasePath = wmoFilePath.substr(0, wmoFilePath.length() - 4); // -3 removing (.wmo)
             const std::string wmoGroupBasePath = wmoBasePath + "_"; // adding (_)
 
-            std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoPath);
+            std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoFilePath);
             WMO_ROOT wmoRoot;
             if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
             {
@@ -193,9 +182,9 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
                 {
                     ss << wmoGroupBasePath << std::setw(3) << std::setfill('0') << i << ".wmo";
 
-                    std::string wmoGroupPath = ss.str();
+                    std::string wmoGroupFile = ss.str();
 
-                    std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupPath);
+                    std::shared_ptr<Bytebuffer> fileWMOObject = mpqLoader->GetFile(wmoGroupFile);
 
                     // TODO: Add a safety check for GetFile (I've left it out now so we can ensure all WMO Group files exists)
 
@@ -204,19 +193,16 @@ void MapExtractor::ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::
 
                     if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
                     {
-                        fs::path wmoGroupPathPath = outputPath.string() + "/MapObjects/" + wmoGroupPath;
-                        wmoGroupPathPath.replace_extension(".nmo"); // .nmo
-                        wmoGroupPathPath.make_preferred();
-
-                        wmoObject.SaveToDisk(wmoGroupPathPath.string(), wmoRoot);
+                        fs::path wmoGroupPathPath = (globalData->wmoPath / wmoGroupFile).make_preferred().replace_extension(".nmo");
+                        wmoObject.SaveToDisk(wmoGroupPathPath, wmoRoot);
                     }
 
                     ss.clear();
                     ss.str("");
                 }
 
-                std::filesystem::path wmoRootPath = outputPath.string() + "/MapObjects/" + wmoBasePath + ".nmor"; // .nmor
-                wmoRoot.SaveToDisk(wmoRootPath.string());
+                std::filesystem::path wmoRootPath = (globalData->wmoPath / (wmoBasePath + ".nmor")).make_preferred(); // .nmor
+                wmoRoot.SaveToDisk(wmoRootPath);
             }
         });
     }

@@ -1,6 +1,7 @@
 #include "DBCExtractor.h"
 
 #include <Utils/StringUtils.h>
+#include "../GlobalData.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
 #include "../BLP/BLP2PNG/BlpConvert.h"
@@ -13,22 +14,23 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     NC_LOG_SUCCESS("Fetching DBCs");
 
+    auto& globalData = ServiceLocator::GetGlobalData();
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-
     std::shared_ptr<DBCReader> dbcReader = ServiceLocator::GetDBCReader();
+
     if (!dbcReader)
     {
         NC_LOG_ERROR("Failed to load dbc files. DBCReader is nullptr");
         return;
     }
 
-    LoadMap(mpqLoader, dbcReader);
-    LoadCreatureModelData(mpqLoader, dbcReader);
-    LoadCreatureDisplayInfo(mpqLoader, dbcReader);
-    LoadEmotesText(mpqLoader, dbcReader);
-    LoadSpell(mpqLoader, dbcReader);
+    LoadMap(globalData, mpqLoader, dbcReader);
+    LoadCreatureModelData(globalData, mpqLoader, dbcReader);
+    LoadCreatureDisplayInfo(globalData, mpqLoader, dbcReader);
+    LoadEmotesText(globalData, mpqLoader, dbcReader);
+    LoadSpell(globalData, mpqLoader, dbcReader);
 
-    CreateDBCStringTableFile();
+    CreateDBCStringTableFile(globalData);
 }
 
 constexpr u32 InvalidNameIndex = std::numeric_limits<u32>().max();
@@ -48,7 +50,7 @@ u32 DBCExtractor::GetNameIndexFromField(DBCReader::DBCRow& row, u32 field)
     return _dbcStringTable.AddString(value);
 }
 
-bool DBCExtractor::LoadMap(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\Map.dbc");
     if (!file)
@@ -81,7 +83,7 @@ bool DBCExtractor::LoadMap(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr
         map.MaxPlayers = row.GetUInt32(65);
     }
 
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/Maps.ndbc").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "Maps.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
 
     NDBCHeader header;
@@ -93,7 +95,7 @@ bool DBCExtractor::LoadMap(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr
 
     return true;
 }
-bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\CreatureModelData.dbc");
     if (!file)
@@ -146,7 +148,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<MPQLoader> mpqLoader, s
         }
     }
 
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/CreatureModelData.ndbc").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "CreatureModelData.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
 
     NDBCHeader header;
@@ -158,7 +160,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<MPQLoader> mpqLoader, s
 
     return true;
 }
-bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\CreatureDisplayInfo.dbc");
     if (!file)
@@ -203,7 +205,7 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<MPQLoader> mpqLoader,
         }
     }
 
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/CreatureDisplayInfo.ndbc").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "CreatureDisplayInfo.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
 
     NDBCHeader header;
@@ -215,7 +217,7 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<MPQLoader> mpqLoader,
 
     return true;
 }
-bool DBCExtractor::LoadEmotesText(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\EmotesText.dbc");
     if (!file)
@@ -245,7 +247,7 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<MPQLoader> mpqLoader, std::sha
         emoteText.AnimationId = row.GetUInt32(2);
     }
 
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/EmotesText.ndbc").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "EmotesText.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
 
     NDBCHeader header;
@@ -257,7 +259,7 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<MPQLoader> mpqLoader, std::sha
 
     return true;
 }
-bool DBCExtractor::LoadSpell(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\Spell.dbc");
     if (!file)
@@ -450,7 +452,7 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<MPQLoader> mpqLoader, std::shared_p
         spell.SpellDifficultyID = row.GetUInt32(233);
     }
 
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/Spell.ndbc").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "Spell.ndbc";
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
 
     NDBCHeader header;
@@ -463,9 +465,9 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<MPQLoader> mpqLoader, std::shared_p
     return true;
 }
 
-void DBCExtractor::CreateDBCStringTableFile()
+void DBCExtractor::CreateDBCStringTableFile(std::shared_ptr<GlobalData> globalData)
 {
-    fs::path outputPath = fs::current_path().append("ExtractedData/Ndbc/NDBCStringTable.nst").make_preferred();
+    fs::path outputPath = globalData->ndbcPath / "NDBCStringTable.nst";
 
     // Create a file
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);

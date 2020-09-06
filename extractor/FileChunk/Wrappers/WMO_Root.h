@@ -1,5 +1,6 @@
 #pragma once
-#include <Containers/StringTable.h>
+#include <vector>
+#include <filesystem>
 #include "../Chunks/MVER.h"
 #include "../Chunks/WMO/ROOT/MOHD.h"
 #include "../Chunks/WMO/ROOT/MOTX.h"
@@ -16,8 +17,9 @@
 #include "../Chunks/WMO/ROOT/MODD.h"
 #include "../Chunks/WMO/ROOT/MFOG.h"
 #include "../Chunks/WMO/ROOT/MCVP.h"
-#include <vector>
+#include <Containers/StringTable.h>
 
+namespace fs = std::filesystem;
 class JobBatch;
 
 struct WMO_ROOT
@@ -39,5 +41,5 @@ struct WMO_ROOT
     MFOG mfog;
     MCVP mcvp;
 
-    void SaveToDisk(const std::string& fileName);
+    void SaveToDisk(const fs::path& filePath);
 };

@@ -2,6 +2,9 @@
 #include <NovusTypes.h>
 #include <Utils/ByteBuffer.h>
 #include <vector>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 #pragma pack(push, 1)
 struct AABB
@@ -524,6 +527,6 @@ struct M2File
     std::vector<M2SkinFile> skinFiles;
 
     bool GetFromMPQ(std::string_view fileName);
-    void SaveToDisk(const std::string& fileName);
+    void SaveToDisk(const fs::path& filePath);
 };
 #pragma pack(pop)

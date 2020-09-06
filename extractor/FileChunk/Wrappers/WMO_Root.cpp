@@ -2,12 +2,12 @@
 
 #include <fstream>
 #include <sstream>
-#include <filesystem>
 #include <tracy/Tracy.hpp>
 
 #include <Containers/StringTable.h>
 #include <Utils/StringUtils.h>
 
+#include "../../GlobalData.h"
 #include "../../Utils/JobBatch.h"
 #include "../../Utils/ServiceLocator.h"
 #include "../../BLP/BLP2PNG/BlpConvert.h"
@@ -18,7 +18,6 @@
 
 #include "../../FileChunk/Chunks/WMO/ROOT/MOMT.h"
 
-namespace fs = std::filesystem;
 
 std::string GetTextureNameByOffset(Bytebuffer& byteBuffer, size_t offset)
 {
@@ -44,7 +43,7 @@ std::string GetTextureNameByOffset(Bytebuffer& byteBuffer, size_t offset)
     return result;
 }
 
-void WMO_ROOT::SaveToDisk(const std::string& fileName)
+void WMO_ROOT::SaveToDisk(const fs::path& filePath)
 {
     ZoneScoped;
 
@@ -56,10 +55,12 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName)
 
     Bytebuffer textureNameBuffer(motx.textureNames, motx.size);
 
-    const StringTable& textureStringTable = ServiceLocator::GetTextureExtractor()->GetStringTable();
+    const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
 
     std::string textureName;
     fs::path texturePath;
+    u32 textureNameIndex = 0;
+    u32 textureNameHash = 0;
 
     for (MOMT::MOMTData& momtData : momt.data)
     {
@@ -73,14 +74,13 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName)
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset1);
             texturePath.replace_extension("dds");
 
-            std::string texturePathStr = texturePath.string();
-            std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
+            textureName = texturePath.string();
+            std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            u32 textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
 
-            u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
             textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-
             material.textureID[0] = textureNameIndex;
         }
         
@@ -89,14 +89,13 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName)
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset2);
             texturePath.replace_extension("dds");
 
-            std::string texturePathStr = texturePath.string();
-            std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
+            textureName = texturePath.string();
+            std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            u32 textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
 
-            u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
             textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-
             material.textureID[1] = textureNameIndex;
         }
 
@@ -105,20 +104,19 @@ void WMO_ROOT::SaveToDisk(const std::string& fileName)
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset3);
             texturePath.replace_extension("dds");
 
-            std::string texturePathStr = texturePath.string();
-            std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
+            textureName = texturePath.string();
+            std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            u32 textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameIndex = std::numeric_limits<u32>().max();
+            textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
 
-            u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
             textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-
             material.textureID[2] = textureNameIndex;
         }
     }
 
     // Create a file
-    std::ofstream output(fileName, std::ofstream::out | std::ofstream::binary);
+    std::ofstream output(filePath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {
         printf("Failed to create MapObjectRoot file. Check admin permissions\n");

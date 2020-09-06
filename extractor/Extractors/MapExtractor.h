@@ -32,7 +32,7 @@
 class MapExtractor
 {
 public:
-    void ExtractMaps(std::shared_ptr<DBCExtractor> dbcExtractor, std::shared_ptr<JobBatchRunner> jobBatchRunner);
+    void ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner);
 
 private:
     // Create a StringTable for WMO names

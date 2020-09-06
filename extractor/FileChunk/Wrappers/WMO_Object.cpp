@@ -2,7 +2,6 @@
 #include "WMO_Root.h"
 
 #include <fstream>
-#include <filesystem>
 
 #include <Containers/StringTable.h>
 
@@ -14,7 +13,7 @@
 
 namespace fs = std::filesystem;
 
-void WMO_OBJECT::SaveToDisk(const std::string& fileName, const WMO_ROOT& root)
+void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
 {
     ZoneScoped;
 
@@ -129,7 +128,7 @@ void WMO_OBJECT::SaveToDisk(const std::string& fileName, const WMO_ROOT& root)
     }
     
     // Create a file
-    std::ofstream output(fileName, std::ofstream::out | std::ofstream::binary);
+    std::ofstream output(filePath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {
         printf("Failed to create MapObjectRoot file. Check admin permissions\n");

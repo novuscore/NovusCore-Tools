@@ -1,11 +1,10 @@
 #include "ADT.h"
 
 #include <fstream>
-#include <filesystem>
-
 #include <Utils/StringUtils.h>
 #include <Utils/DebugHandler.h>
 
+#include "../../GlobalData.h"
 #include "../../Utils/ServiceLocator.h"
 #include "../../Utils/JobBatch.h"
 #include "../../BLP/BLP2PNG/BlpConvert.h"
@@ -16,9 +15,7 @@
 
 #include <tracy/Tracy.hpp>
 
-namespace fs = std::filesystem;
-
-void ADT::SaveToDisk(const std::string& fileName)
+void ADT::SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath)
 {
     ZoneScoped;
 
@@ -45,7 +42,7 @@ void ADT::SaveToDisk(const std::string& fileName)
     // Create a StringTable for alpha map texture names
     StringTable stringTable;
 
-    const StringTable& textureStringTable = ServiceLocator::GetTextureExtractor()->GetStringTable();
+    const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
 
     // Insert data from ADT into Chunk here
     for (u16 i = 0; i < MAP_CELLS_PER_CHUNK; i++)
@@ -163,25 +160,18 @@ void ADT::SaveToDisk(const std::string& fileName)
     }
 
     // Convert alphamap data into a texture
-    fs::path alphaMapSubPath = "Textures/ChunkAlphaMaps";
-    alphaMapSubPath = alphaMapSubPath.append(fileName).make_preferred().replace_extension("dds");
-
-    fs::path alphaMapOutputPath = fs::current_path().append("ExtractedData") / alphaMapSubPath;
-    u32 alphaMapOutputPathHash = StringUtils::fnv1a_32(alphaMapOutputPath.string().c_str(), alphaMapOutputPath.string().size());
-
-    //jobBatch.AddJob(alphaMapPathHash, [alphaMapPath, fileName, chunk->alphaMapData]()
+    const std::string alphaMapOutput = ((globalData->texturePath / "ChunkAlphaMaps/Maps" / filePath).make_preferred().replace_extension("dds")).string();
     {
         ZoneScopedN("ADT::SaveToFile::Convert Alphamap Texture");
         
         BLP::BlpConvert blpConvert;
-        blpConvert.ConvertRaw(64, 64, MAP_CELLS_PER_CHUNK, chunk->alphaMapData, MAP_CHUNK_ALPHAMAP_BYTE_SIZE, BLP::InputFormat::BGRA_8UB, BLP::Format::DXT1, alphaMapOutputPath.string(), false);
-    }//);
+        blpConvert.ConvertRaw(64, 64, MAP_CELLS_PER_CHUNK, chunk->alphaMapData, MAP_CHUNK_ALPHAMAP_BYTE_SIZE, BLP::InputFormat::BGRA_8UB, BLP::Format::DXT1, alphaMapOutput, false);
+    }
 
-    fs::path alphaMapDataPath = ("Data/extracted" / alphaMapSubPath).make_preferred();
-    u32 alphaMapStringIndex = stringTable.AddString(alphaMapDataPath.string());
+    u32 alphaMapStringIndex = stringTable.AddString(alphaMapOutput);
     
     // Create a file
-    fs::path outputPath = fs::current_path().append("ExtractedData").append(fileName).make_preferred();
+    fs::path outputPath = (globalData->mapPath / filePath).make_preferred();
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {

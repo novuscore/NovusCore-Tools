@@ -1,4 +1,5 @@
 #include <NovusTypes.h>
+#include "GlobalData.h"
 #include "MPQ/MPQLoader.h"
 #include "Extractors/DBCExtractor.h"
 #include "Extractors/TextureExtractor.h"
@@ -8,6 +9,9 @@
 #include "Utils/ServiceLocator.h"
 #include "Utils/JobBatchRunner.h"
 #include <tracy/Tracy.hpp>
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 #ifdef TRACY_ENABLE
 void* operator new(std::size_t count)
@@ -27,19 +31,12 @@ void operator delete(void* ptr) noexcept
 i32 main()
 {
     ZoneScoped;
-    std::shared_ptr<MPQLoader> mpqLoader = std::make_shared<MPQLoader>();
-    std::shared_ptr<ChunkLoader> chunkLoader = std::make_shared<ChunkLoader>();
-    std::shared_ptr<DBCExtractor> dbcExtractor = std::make_shared<DBCExtractor>();
-    std::shared_ptr<TextureExtractor> textureExtractor = std::make_shared<TextureExtractor>();
-    std::shared_ptr<MapExtractor> mapExtractor = std::make_shared<MapExtractor>();
-    std::shared_ptr<M2Extractor> m2Extractor = std::make_shared<M2Extractor>();
-    std::shared_ptr<DBCReader> dbcReader = std::make_shared<DBCReader>();
-
     std::shared_ptr<JobBatchRunner> jobBatchRunner = std::make_shared<JobBatchRunner>();
-    ServiceLocator::SetMPQLoader(mpqLoader);
-    ServiceLocator::SetChunkLoader(chunkLoader);
-    ServiceLocator::SetDBCReader(dbcReader);
-    ServiceLocator::SetTextureExtractor(textureExtractor);
+
+    auto& globalData = ServiceLocator::SetGlobalData(std::make_shared<GlobalData>());
+    auto& mpqLoader = ServiceLocator::SetMPQLoader(std::make_shared<MPQLoader>());
+    ServiceLocator::SetDBCReader(std::make_shared<DBCReader>());
+    ServiceLocator::SetChunkLoader(std::make_shared<ChunkLoader>());
 
     /* Runs and validaties all 280k files (3.3.5a)
         mpqLoader->__Test__();
@@ -50,68 +47,41 @@ i32 main()
         std::shared_ptr<Bytebuffer> buffer = mpqLoader->GetFile(file);
         if (buffer)
         {
-        
+
         }
     */
 
-    if (mpqLoader->Load())
+    if (!mpqLoader->Load())
     {
-        std::filesystem::path basePath = std::filesystem::current_path();
-        std::filesystem::path baseFolderPath = basePath.string() + "/ExtractedData";
-        std::filesystem::path ndbcFolderPath = baseFolderPath.string() + "/Ndbc";
-        std::filesystem::path textureFolderPath = baseFolderPath.string() + "/Textures";
-        std::filesystem::path mapFolderPath = baseFolderPath.string() + "/Maps";
-        std::filesystem::path m2FolderPath = baseFolderPath.string() + "/NM2";
-
-        // Create Output Folders
-        {
-            if (!std::filesystem::exists(baseFolderPath))
-            {
-                std::filesystem::create_directory(baseFolderPath);
-            }
-
-            if (!std::filesystem::exists(ndbcFolderPath))
-            {
-                std::filesystem::create_directory(ndbcFolderPath);
-            }
-
-            if (!std::filesystem::exists(textureFolderPath))
-            {
-                std::filesystem::create_directory(textureFolderPath);
-            }
-
-            if (!std::filesystem::exists(mapFolderPath))
-            {
-                std::filesystem::create_directory(mapFolderPath);
-            }
-
-            if (!std::filesystem::exists(m2FolderPath))
-            {
-                std::filesystem::create_directory(m2FolderPath);
-            }
-        }
-
-        jobBatchRunner->Start();
-        {
-            dbcExtractor->ExtractDBCs(jobBatchRunner);
-            textureExtractor->ExtractTextures(jobBatchRunner);
-            {
-                mapExtractor->ExtractMaps(dbcExtractor, jobBatchRunner);
-                m2Extractor->ExtractM2s(jobBatchRunner);
-
-            }
-            textureExtractor->CreateTextureStringTableFile(textureFolderPath);
-        }
-        jobBatchRunner->Stop();
-
-        mpqLoader->Close();
-        NC_LOG_SUCCESS("Finished extracting all data");
-    }
-    else
-    {
-        NC_LOG_ERROR("Failed to load any MPQs");
+        NC_LOG_FATAL("Failed to load MPQ Files.");
+        return 0;
     }
 
-    system("pause");
+
+    // Create output folders
+    {
+        fs::create_directory(globalData->extractedDataPath);
+        fs::create_directory(globalData->ndbcPath);
+        fs::create_directory(globalData->texturePath);
+        fs::create_directory(globalData->mapPath);
+        fs::create_directory(globalData->nm2Path);
+    }
+
+    // Start Job Batch Runner
+    jobBatchRunner->Start();
+    {
+        globalData->dbcExtractor->ExtractDBCs(jobBatchRunner);
+        globalData->textureExtractor->ExtractTextures(jobBatchRunner);
+        {
+            globalData->mapExtractor->ExtractMaps(jobBatchRunner);
+            globalData->m2Extractor->ExtractM2s(jobBatchRunner);
+        }
+        globalData->textureExtractor->CreateTextureStringTableFile();
+    }
+    jobBatchRunner->Stop();
+
+    mpqLoader->Close();
+
+    NC_LOG_SUCCESS("Dataextractor finished");
     return 0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <filesystem>
 #include "../Chunks/MVER.h"
 #include "../Chunks/ADT/MHDR.h"
 #include "../Chunks/ADT/MCIN.h"
@@ -19,6 +20,9 @@
 
 class JobBatch;
 
+namespace fs = std::filesystem;
+
+class GlobalData;
 struct ADT
 {
     MVER mver;
@@ -36,5 +40,5 @@ struct ADT
     MTXF mtxf;
     std::vector<MapCellInfo> cells;
 
-    void SaveToDisk(const std::string& fileName);
+    void SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath);
 };

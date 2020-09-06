@@ -7,11 +7,13 @@
 
 #include <fstream>
 #include <tracy/Tracy.hpp>
+#include "../GlobalData.h"
 
 constexpr bool extractTextures = true;
 
 void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
+    auto& globalData = ServiceLocator::GetGlobalData();
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     NC_LOG_SUCCESS("Fetching Textures");
@@ -35,8 +37,8 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
         for (u32 i = 0; i < _textureStringTable.GetNumStrings(); i++)
         {
             const std::string& texturePath = _textureStringTable.GetString(i);
-            fs::path outputPath = fs::current_path().append("ExtractedData/Textures").append(texturePath).make_preferred();
 
+            fs::path outputPath = (globalData->texturePath / texturePath).make_preferred();
             fs::path textureFilePath = texturePath;
             textureFilePath.replace_extension("blp");
 
@@ -66,9 +68,10 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
     }
 }
 
-void TextureExtractor::CreateTextureStringTableFile(const fs::path& baseFolderPath)
+void TextureExtractor::CreateTextureStringTableFile()
 {
-    fs::path outputPath = baseFolderPath / "TextureStringTable.nst";
+    auto& globalData = ServiceLocator::GetGlobalData();
+    fs::path outputPath = globalData->texturePath / "TextureStringTable.nst";
 
     // Create a file
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <filesystem>
 #include "../Chunks/MVER.h"
 #include "../Chunks/WMO/OBJECT/MOGP.h"
 #include "../Chunks/WMO/OBJECT/MOPY.h"
@@ -9,6 +10,8 @@
 #include "../Chunks/WMO/OBJECT/MOCV.h"
 #include "../Chunks/WMO/OBJECT/MOTV.h"
 #include "../Chunks/WMO/OBJECT/MOBA.h"
+
+namespace fs = std::filesystem;
 
 class JobBatch;
 
@@ -26,5 +29,5 @@ struct WMO_OBJECT
     MOBA moba; // Render batches
 
     WMO_ROOT* root;
-    void SaveToDisk(const std::string& fileName, const WMO_ROOT& root);
+    void SaveToDisk(const fs::path& filePath, const WMO_ROOT& root);
 };

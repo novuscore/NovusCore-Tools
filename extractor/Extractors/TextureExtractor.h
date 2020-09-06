@@ -13,7 +13,7 @@ class TextureExtractor
 {
 public:
     void ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner);
-    void CreateTextureStringTableFile(const fs::path& baseFolderPath);
+    void CreateTextureStringTableFile();
 
     StringTable& GetStringTable() { return _textureStringTable; }
 

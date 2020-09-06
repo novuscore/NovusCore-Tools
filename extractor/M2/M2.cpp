@@ -1,9 +1,9 @@
 #include "M2.h"
+#include "../GlobalData.h"
 #include "../MPQ/MPQLoader.h"
 #include "../Extractors/TextureExtractor.h"
 
 #include <fstream>
-#include <filesystem>
 #include <Containers/StringTable.h>
 #include <Utils/StringUtils.h>
 #include "../Utils/ServiceLocator.h"
@@ -11,9 +11,6 @@
 #include "../BLP/BLP2PNG/BlpConvert.h"
 
 #include <tracy/Tracy.hpp>
-
-namespace fs = std::filesystem;
-
 
 bool M2File::GetFromMPQ(std::string_view fileName)
 {
@@ -49,12 +46,12 @@ bool M2File::GetFromMPQ(std::string_view fileName)
     return true;
  }
 
-void M2File::SaveToDisk(const std::string& outputPath)
+void M2File::SaveToDisk(const fs::path& filePath)
 {
     ZoneScopedN("M2::SaveToFile");
 
     // Create a file
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    std::ofstream output(filePath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {
         printf("Failed to create nm2 file. Check admin permissions\n");
@@ -78,7 +75,7 @@ void M2File::SaveToDisk(const std::string& outputPath)
 
     if (numTextures > 0)
     {
-        const StringTable& textureStringTable = ServiceLocator::GetTextureExtractor()->GetStringTable();
+        const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
 
         M2Texture* texture = nullptr;
         for (u32 i = 0; i < m2.textures.size; i++)

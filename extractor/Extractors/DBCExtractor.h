@@ -12,6 +12,7 @@ namespace fs = std::filesystem;
 #include "../DBC/DBCStructures.h"
 #include "../MPQ/MPQLoader.h"
 
+class GlobalData;
 class DBCExtractor
 {
 public:
@@ -28,13 +29,13 @@ public:
 private:
     u32 GetNameIndexFromField(DBCReader::DBCRow& row, u32 field);
 
-    bool LoadMap(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
-    bool LoadCreatureModelData(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
-    bool LoadCreatureDisplayInfo(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
-    bool LoadEmotesText(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
-    bool LoadSpell(std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadCreatureModelData(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
 
-    void CreateDBCStringTableFile();
+    void CreateDBCStringTableFile(std::shared_ptr<GlobalData> globalData);
 private:
     std::vector<DBCMap> _maps;
     std::vector<DBCCreatureModelData> _creatureModelDatas;
