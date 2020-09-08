@@ -2,7 +2,7 @@
 #include <cassert>
 
 std::shared_ptr<MPQLoader> ServiceLocator::_mpqLoader = nullptr;
-std::shared_ptr<ChunkLoader> ServiceLocator::_chunkLoader = nullptr;
+std::shared_ptr<FileChunkLoader> ServiceLocator::_chunkLoader = nullptr;
 std::shared_ptr<DBCReader> ServiceLocator::_dbcReader = nullptr;
 std::shared_ptr<GlobalData> ServiceLocator::_globalData = nullptr;
 
@@ -14,7 +14,7 @@ std::shared_ptr<MPQLoader>& ServiceLocator::SetMPQLoader(std::shared_ptr<MPQLoad
     return _mpqLoader;
 }
 
-std::shared_ptr<ChunkLoader>& ServiceLocator::SetChunkLoader(std::shared_ptr<ChunkLoader> chunkLoader)
+std::shared_ptr<FileChunkLoader>& ServiceLocator::SetChunkLoader(std::shared_ptr<FileChunkLoader> chunkLoader)
 {
     assert(chunkLoader != nullptr);
     _chunkLoader = chunkLoader;

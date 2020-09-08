@@ -1,13 +1,12 @@
 #include "DBCExtractor.h"
-
 #include <Utils/StringUtils.h>
+
 #include "../GlobalData.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
-#include "../BLP/BLP2PNG/BlpConvert.h"
+#include "../Formats/BLP/BlpConvert.h"
 
 #include <fstream>
-#include <sstream>
 #include <tracy/Tracy.hpp>
 
 void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
@@ -73,7 +72,7 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
     {
         auto row = dbcReader->GetRow(i);
 
-        DBCMap& map = _maps.emplace_back();
+        DBC::Map& map = _maps.emplace_back();
         map.Id = row.GetUInt32(0);
         map.InternalName = GetNameIndexFromField(row, 1);
         map.InstanceType = row.GetUInt32(2);
@@ -91,10 +90,10 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
         return false;
     }
 
-    NDBCHeader header;
+    DBC::NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of maps
-    output.write(reinterpret_cast<char const*>(_maps.data()), rows * sizeof(DBCMap)); // Write maps
+    output.write(reinterpret_cast<char const*>(_maps.data()), rows * sizeof(DBC::Map)); // Write maps
 
     output.close();
 
@@ -123,7 +122,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
     {
         auto row = dbcReader->GetRow(i);
         {
-            DBCCreatureModelData& creatureModelData = _creatureModelDatas.emplace_back();
+            DBC::CreatureModelData& creatureModelData = _creatureModelDatas.emplace_back();
             creatureModelData.id = row.GetUInt32(0);
             creatureModelData.flags = row.GetUInt32(1);
             creatureModelData.modelPath = GetNameIndexFromField(row, 2);
@@ -161,10 +160,10 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
         return false;
     }
 
-    NDBCHeader header;
+    DBC::NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCCreatureModelDatas
-    output.write(reinterpret_cast<char const*>(_creatureModelDatas.data()), rows * sizeof(DBCCreatureModelData)); // Write DBCCreatureModelDatas
+    output.write(reinterpret_cast<char const*>(_creatureModelDatas.data()), rows * sizeof(DBC::CreatureModelData)); // Write DBCCreatureModelDatas
 
     output.close();
 
@@ -193,7 +192,7 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
     {
         auto row = dbcReader->GetRow(i);
         {
-            DBCCreatureDisplayInfo& creatureDisplayInfo = _creatureDisplayInfos.emplace_back();
+            DBC::CreatureDisplayInfo& creatureDisplayInfo = _creatureDisplayInfos.emplace_back();
             creatureDisplayInfo.id = row.GetUInt32(0);
             creatureDisplayInfo.modelId = row.GetUInt32(1);
             creatureDisplayInfo.soundId = row.GetUInt32(2);
@@ -223,10 +222,10 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
         return false;
     }
 
-    NDBCHeader header;
+    DBC::NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of CreatureDisplayInfos
-    output.write(reinterpret_cast<char const*>(_creatureDisplayInfos.data()), rows * sizeof(DBCCreatureDisplayInfo)); // Write CreatureDisplayInfos
+    output.write(reinterpret_cast<char const*>(_creatureDisplayInfos.data()), rows * sizeof(DBC::CreatureDisplayInfo)); // Write CreatureDisplayInfos
 
     output.close();
 
@@ -256,7 +255,7 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
     {
         auto row = dbcReader->GetRow(i);
 
-        DBCEmotesText& emoteText = _emotesTexts.emplace_back();
+        DBC::EmotesText& emoteText = _emotesTexts.emplace_back();
         emoteText.Id = row.GetUInt32(0);
         emoteText.InternalName = GetNameIndexFromField(row, 1);
         emoteText.AnimationId = row.GetUInt32(2);
@@ -270,10 +269,10 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
         return false;
     }
 
-    NDBCHeader header;
+    DBC::NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCEmotesTexts
-    output.write(reinterpret_cast<char const*>(_emotesTexts.data()), rows * sizeof(DBCEmotesText)); // Write DBCEmotesTexts
+    output.write(reinterpret_cast<char const*>(_emotesTexts.data()), rows * sizeof(DBC::EmotesText)); // Write DBCEmotesTexts
 
     output.close();
 
@@ -302,7 +301,7 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
     {
         auto row = dbcReader->GetRow(i);
 
-        DBCSpell& spell = _spells.emplace_back();
+        DBC::Spell& spell = _spells.emplace_back();
         spell.Id = row.GetUInt32(0);
         spell.SpellCategory = row.GetUInt32(1);
         spell.DispelType = row.GetUInt32(2);
@@ -480,10 +479,10 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
         return false;
     }
 
-    NDBCHeader header;
+    DBC::NDBCHeader header;
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCSpells
-    output.write(reinterpret_cast<char const*>(_spells.data()), rows * sizeof(DBCSpell)); // Write DBCSpells
+    output.write(reinterpret_cast<char const*>(_spells.data()), rows * sizeof(DBC::Spell)); // Write DBCSpells
 
     output.close();
 

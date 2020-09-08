@@ -3,11 +3,10 @@
 #include "../GlobalData.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
-#include "../MPQ/MPQLoader.h"
-#include "../M2/M2.h"
+#include "../Utils/MPQLoader.h"
+#include "../Formats/M2/M2.h"
 
 #include <filesystem>
-
 namespace fs = std::filesystem;
 
 void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)

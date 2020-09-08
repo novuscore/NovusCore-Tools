@@ -1,17 +1,23 @@
 #include "TextureExtractor.h"
 
+#include "../GlobalData.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
-#include "../MPQ/MPQLoader.h"
-#include "../BLP/BLP2PNG/BlpConvert.h"
+#include "../Utils/MPQLoader.h"
+#include "../Formats/BLP/BlpConvert.h"
 
 #include <fstream>
 #include <tracy/Tracy.hpp>
-#include "../GlobalData.h"
 
 void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     auto& globalData = ServiceLocator::GetGlobalData();
+    json& textureConfig = globalData->config.GetJsonObjectByKey("Texture");
+    
+    // Check if we should completely disable extracting the textures (This should only be used for debugging)
+    if (textureConfig["DisableStringTableGeneration"] == true)
+        return;
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     NC_LOG_SUCCESS("Fetching Textures");
@@ -29,7 +35,6 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
     });
 
     // Check if we should extract the textures (We still need to build the stringtable above)
-    json& textureConfig = globalData->config.GetJsonObjectByKey("Texture");
     if (textureConfig["Extract"] == false)
         return;
 

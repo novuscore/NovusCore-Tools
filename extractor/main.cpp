@@ -1,18 +1,16 @@
 #include <NovusTypes.h>
 #include "GlobalData.h"
-#include "MPQ/MPQLoader.h"
+#include "Utils/MPQLoader.h"
 #include "Extractors/DBCExtractor.h"
 #include "Extractors/TextureExtractor.h"
 #include "Extractors/MapExtractor.h"
 #include "Extractors/M2Extractor.h"
-#include "FileChunk/ChunkLoader.h"
+#include "Formats/FileChunk/FileChunkLoader.h"
 #include "Utils/ServiceLocator.h"
 #include "Utils/JobBatchRunner.h"
 #include <Utils/JsonConfig.h>
 #include <tracy/Tracy.hpp>
 
-#include <fstream>
-#include <sstream>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -39,20 +37,7 @@ i32 main()
     auto& globalData = ServiceLocator::SetGlobalData(std::make_shared<GlobalData>());
     auto& mpqLoader = ServiceLocator::SetMPQLoader(std::make_shared<MPQLoader>());
     ServiceLocator::SetDBCReader(std::make_shared<DBCReader>());
-    ServiceLocator::SetChunkLoader(std::make_shared<ChunkLoader>());
-
-    /* Runs and validaties all 280k files (3.3.5a)
-        mpqLoader->__Test__();
-
-        Example usage of GetFIle
-
-        std::string file = "Tileset\\Generic\\Black.blp";
-        std::shared_ptr<Bytebuffer> buffer = mpqLoader->GetFile(file);
-        if (buffer)
-        {
-
-        }
-    */
+    ServiceLocator::SetChunkLoader(std::make_shared<FileChunkLoader>());
 
     fs::path configPath = globalData->currentPath / "dataextractor.json";
     json config;
@@ -73,7 +58,8 @@ i32 main()
 
         config["M2"] =
         {
-            {"Extract", true}
+            {"Extract", true},
+            {"DisableStringTableGeneration", false}
         };
     }
 
@@ -81,12 +67,12 @@ i32 main()
     if (!globalData->config.LoadOrCreate(configPath, config))
         return 0;
 
+    // Load all MPQ Archives
     if (!mpqLoader->Load())
     {
         NC_LOG_FATAL("Failed to load MPQ Files.");
         return 0;
     }
-
 
     // Create output folders
     {

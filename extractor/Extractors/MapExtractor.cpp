@@ -1,6 +1,6 @@
 #include "MapExtractor.h"
 #include "../GlobalData.h"
-#include "../MPQ/MPQLoader.h"
+#include "../Utils/MPQLoader.h"
 #include "../Utils/ServiceLocator.h"
 #include "../Utils/JobBatchRunner.h"
 
@@ -8,11 +8,11 @@
 #include <filesystem>
 #include <sstream>
 
-#include "../FileChunk/ChunkLoader.h"
-#include "../FileChunk/Wrappers/WDT.h"
-#include "../FileChunk/Wrappers/ADT.h"
-#include "../FileChunk/Wrappers/WMO_ROOT.h"
-#include "../FileChunk/Wrappers/WMO_OBJECT.h"
+#include "../Formats/FileChunk/FileChunkLoader.h"
+#include "../Formats/FileChunk/Chunks/WDT/Wdt.h"
+#include "../Formats/FileChunk/Chunks/ADT/Adt.h"
+#include "../Formats/FileChunk/Chunks/WMO/Root/MapObjectRoot.h"
+#include "../Formats/FileChunk/Chunks/WMO/Object/MapObjectGroup.h"
 
 #include <tracy/Tracy.hpp>
 
@@ -32,7 +32,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
     std::filesystem::create_directories(mapAlphaMapPath);
 
-    const std::vector<DBCMap>& maps = globalData->dbcExtractor->GetMaps();
+    const std::vector<DBC::Map>& maps = globalData->dbcExtractor->GetMaps();
 
     size_t mapNames = mapConfig["MapNames"].size();
     size_t numMaps = mapNames ? mapNames : maps.size();
@@ -44,7 +44,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     moodycamel::ConcurrentQueue<JobBatchToken> jobBatchTokens;
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-    std::shared_ptr<ChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
+    std::shared_ptr<FileChunkLoader> chunkLoader = ServiceLocator::GetChunkLoader();
 
     for (size_t i = 0; i < numMaps; i++)
     {
@@ -70,11 +70,11 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
             if (!fileWDT)
                 return;
 
-            WDT wdt;
-            if (!chunkLoader->LoadWDT(fileWDT, wdt))
+            Wdt::Wdt wdt;
+            if (!chunkLoader->LoadWdt(fileWDT, wdt))
                 return;
 
-            if ((wdt.mphd.flags & static_cast<u32>(MPHDFlags::UsesGlobalMapObj)) == 0)
+            if (!wdt.mphd.flags.UsesGlobalMapObj)
             {
                 filePathStream.clear();
                 filePathStream.str("");
@@ -83,7 +83,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 
                 for (u32 j = 0; j < NUM_SM_AREA_INFO; j++)
                 {
-                    MAIN::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[j];
+                    Wdt::Main::SMAreaInfo& areaInfo = wdt.main.MapAreaInfo[j];
                     if (!areaInfo.hasADT)
                         continue;
 
@@ -109,8 +109,8 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
                         std::shared_ptr<Bytebuffer> fileADT = mpqLoader->GetFile(filePath);
                         assert(fileADT); // If this file does not exist, something went very wrong
 
-                        ADT adt;
-                        if (!chunkLoader->LoadADT(fileADT, wdt, adt))
+                        Adt::Adt adt;
+                        if (!chunkLoader->LoadAdt(fileADT, wdt, adt))
                         {
                             // This could happen, but for now I want to assert it in this test scenario
                             assert(false);
@@ -180,7 +180,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 
             std::shared_ptr<Bytebuffer> fileWMORoot = mpqLoader->GetFile(wmoFilePath);
             WMO_ROOT wmoRoot;
-            if (chunkLoader->LoadWMO_ROOT(fileWMORoot, wmoRoot))
+            if (chunkLoader->LoadMapObjectRoot(fileWMORoot, wmoRoot))
             {
                 std::stringstream ss;
 
@@ -197,7 +197,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
                     WMO_OBJECT wmoObject;
                     wmoObject.root = &wmoRoot;
 
-                    if (chunkLoader->LoadWMO_OBJECT(fileWMOObject, wmoRoot, wmoObject))
+                    if (chunkLoader->LoadMapObjectGroup(fileWMOObject, wmoRoot, wmoObject))
                     {
                         fs::path wmoGroupPathPath = (globalData->wmoPath / wmoGroupFile).make_preferred().replace_extension(".nmo");
                         wmoObject.SaveToDisk(wmoGroupPathPath, wmoRoot);
