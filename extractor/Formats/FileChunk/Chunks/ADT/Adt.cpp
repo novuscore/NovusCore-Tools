@@ -66,9 +66,14 @@ namespace Adt
                     chunk->heightHeader.gridMaxHeight = height;
 
                 // Normal data, this is swizzled read https://wowdev.wiki/ADT/v18#MCNR_sub-chunk
-                cell.normalData[j][0] = cells[i].mcnr.entries[j].normal[0];
-                cell.normalData[j][1] = cells[i].mcnr.entries[j].normal[2];
-                cell.normalData[j][2] = cells[i].mcnr.entries[j].normal[1];
+                i8 normalX = cells[i].mcnr.entries[j].normal[0];
+                i8 normalY = cells[i].mcnr.entries[j].normal[2];
+                i8 normalZ = cells[i].mcnr.entries[j].normal[1];
+
+                // Make sure to convert to u8 [0 .. 256]
+                cell.normalData[j][0] = normalX + 127;
+                cell.normalData[j][1] = normalY + 127;
+                cell.normalData[j][2] = normalZ + 127;
 
                 // Color data
                 cell.colorData[j][0] = cells[i].mccv.entries[j].blue;
