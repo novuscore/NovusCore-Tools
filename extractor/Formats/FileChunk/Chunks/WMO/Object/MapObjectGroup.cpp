@@ -11,6 +11,44 @@
 
 namespace fs = std::filesystem;
 
+vec2 OctNormalWrap(vec2 v)
+{
+    vec2 wrap;
+    wrap.x = (1.0f - glm::abs(v.y)) * (v.x >= 0.0f ? 1.0f : -1.0f);
+    wrap.y = (1.0f - glm::abs(v.x)) * (v.y >= 0.0f ? 1.0f : -1.0f);
+    return wrap;
+}
+
+vec2 OctNormalEncode(vec3 n)
+{
+    n /= (glm::abs(n.x) + glm::abs(n.y) + glm::abs(n.z));
+
+    vec2 wrapped = OctNormalWrap(n);
+
+    vec2 result;
+    result.x = n.z >= 0.0f ? n.x : wrapped.x;
+    result.y = n.z >= 0.0f ? n.y : wrapped.y;
+
+    result.x = result.x * 0.5f + 0.5f;
+    result.y = result.y * 0.5f + 0.5f;
+
+    return result;
+}
+
+vec3 OctNormalDecode(vec2 encN)
+{
+    encN = encN * 2.0f - 1.0f;
+
+    // https://twitter.com/Stubbesaurus/status/937994790553227264
+    vec3 n = vec3(encN.x, encN.y, 1.0f - abs(encN.x) - abs(encN.y));
+    float t = glm::clamp(-n.z, 0.0f, 1.0f);
+
+    n.x += n.x >= 0.0f ? -t : t;
+    n.y += n.y >= 0.0f ? -t : t;
+
+    return normalize(n);
+}
+
 void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
 {
     ZoneScoped;
@@ -20,36 +58,6 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
     thread_local MapObject* mapObject = new MapObject();
 
     memcpy(mapObject, mapObjectTemplate, sizeof(MapObject));
-
-    // Convert render batches
-    for (u32 i = 0; i < moba.data.size(); i++)
-    {
-        RenderBatch& renderBatch = mapObject->renderBatches.emplace_back();
-
-        renderBatch.startIndex = moba.data[i].startIndex;
-        renderBatch.indexCount = moba.data[i].indexCount;
-        renderBatch.materialID = moba.data[i].materialId;
-    }
-
-    // Fix vertex positions
-    for (u32 i = 0; i < movt.vertexPosition.size(); i++)
-    {
-        vec3 pos = movt.vertexPosition[i];
-
-        pos = vec3(-pos.x, pos.z, -pos.y);
-
-        movt.vertexPosition[i] = pos;
-    }
-
-    // Fix vertex normals
-    for (u32 i = 0; i < monr.vertexNormals.size(); i++)
-    {
-        vec3 normal = monr.vertexNormals[i];
-
-        normal = vec3(-normal.x, normal.z, -normal.y);
-
-        monr.vertexNormals[i] = normal;
-    }
 
     // Fix vertex colors
     if (mocv.data.size() > 0 && !mocv.data[0].isAlphaOnly)
@@ -124,7 +132,58 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
             }
         }
     }
-    
+
+    // Convert render batches
+    for (u32 i = 0; i < moba.data.size(); i++)
+    {
+        RenderBatch& renderBatch = mapObject->renderBatches.emplace_back();
+
+        renderBatch.startIndex = moba.data[i].startIndex;
+        renderBatch.indexCount = moba.data[i].indexCount;
+        renderBatch.materialID = moba.data[i].materialId;
+    }
+
+    // Convert vertices
+    u32 numVertexPositions = static_cast<u32>(movt.vertexPosition.size());
+    u32 numVertexNormals = static_cast<u32>(monr.vertexNormals.size());
+    assert(numVertexPositions == numVertexNormals); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
+
+    u32 numVertices = numVertexPositions;
+
+    for (u32 i = 0; i < numVertices; i++)
+    {
+        MapObjectVertex& vertex = mapObject->vertices.emplace_back();
+
+        // Position
+        vec3 pos = movt.vertexPosition[i];
+        vertex.position = vec3(-pos.x, pos.z, -pos.y);
+
+        // Normal
+        vec3 normal = monr.vertexNormals[i];
+        normal = vec3(-normal.x, normal.z, -normal.y);
+
+        vec2 octNormal = OctNormalEncode(normal);
+
+        vertex.octNormal[0] = static_cast<u8>(glm::round(octNormal.x * 255.0f));
+        vertex.octNormal[1] = static_cast<u8>(glm::round(octNormal.y * 255.0f));
+
+        // UV
+        if (motv.data.size() > 0)
+        {
+            vec2 uv = motv.data[0].vertexUVs[i];
+
+            vertex.uv.x = uv.x;
+            vertex.uv.y = uv.y;
+        }
+        if (motv.data.size() > 1)
+        {
+            vec2 uv = motv.data[1].vertexUVs[i];
+
+            vertex.uv.z = uv.x;
+            vertex.uv.w = uv.y;
+        }
+    }
+
     // Create a file
     std::ofstream output(filePath, std::ofstream::out | std::ofstream::binary);
     if (!output)
@@ -144,27 +203,13 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
     output.write(reinterpret_cast<char const*>(&numIndices), sizeof(u32));
 
     // Write indices
-    if (numIndices > 0)
-    {
-        output.write(reinterpret_cast<char const*>(movi.indices.data()), sizeof(u16) * numIndices);
-    }
+    output.write(reinterpret_cast<char const*>(movi.indices.data()), sizeof(u16) * numIndices);
 
-    u32 numVertexPositions = static_cast<u32>(movt.vertexPosition.size());
-    u32 numVertexNormals = static_cast<u32>(monr.vertexNormals.size());
-
-    assert(numVertexPositions == numVertexNormals); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
-    
     // Write number of vertices
-    output.write(reinterpret_cast<char const*>(&numVertexPositions), sizeof(u32));
+    output.write(reinterpret_cast<char const*>(&numVertices), sizeof(u32));
 
     // Write vertices
-    if (numVertexPositions > 0)
-    {
-        // Write vertexPositions
-        output.write(reinterpret_cast<char const*>(movt.vertexPosition.data()), sizeof(vec3) * numVertexPositions);
-        // Write vertexNormals
-        output.write(reinterpret_cast<char const*>(monr.vertexNormals.data()), sizeof(vec3) * numVertexNormals);
-    }
+    output.write(reinterpret_cast<char const*>(mapObject->vertices.data()), sizeof(MapObjectVertex) * numVertices);
 
     // Write number of vertex color sets
     u32 numVertexColorSets = static_cast<u32>(mocv.data.size());
@@ -184,20 +229,6 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
             // Write vertexColors
             output.write(reinterpret_cast<char const*>(mocv.data[i].vertexColors.data()), sizeof(IntColor) * numVertexColors);
         }
-    }
-
-    // Write number of UV sets
-    u32 numUVSets = static_cast<u32>(motv.data.size());
-    output.write(reinterpret_cast<char const*>(&numUVSets), sizeof(u32));
-
-    for (MOTV::MOTVData& motvData : motv.data)
-    {
-        u32 numVertexUVs = static_cast<u32>(motvData.vertexUVs.size());
-
-        assert(numVertexPositions == numVertexUVs); // AFAIK, the number of these should always be the same, if this ever hits talk to Pursche
-
-        // Write vertexUVs
-        output.write(reinterpret_cast<char const*>(motvData.vertexUVs.data()), sizeof(vec2) * numVertexUVs);
     }
 
     // Write number of MOPYData
@@ -220,4 +251,7 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
     }
 
     output.close();
+
+    mapObject->vertices.clear();
+    mapObject->renderBatches.clear();
 }

@@ -24,7 +24,7 @@
 struct MapObjectHeader
 {
     u32 token = 7236975; // UTF8 -> Binary -> Decimal for "nmo"
-    u32 version = 2;
+    u32 version = 3;
 };
 
 struct RenderBatch
@@ -34,10 +34,18 @@ struct RenderBatch
     u8 materialID;
 };
 
+struct MapObjectVertex
+{
+    hvec3 position = hvec3(static_cast<f16>(0.0f));
+    u8 octNormal[2] = { 0, 0 };
+    hvec4 uv = hvec4(static_cast<f16>(0.0f));
+}; // 16 bytes
+
 struct MapObject
 {
     MapObjectHeader header;
 
+    std::vector<MapObjectVertex> vertices;
     std::vector<RenderBatch> renderBatches;
 };
 #pragma pack(pop)

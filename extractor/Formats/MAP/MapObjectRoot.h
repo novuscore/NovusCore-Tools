@@ -27,7 +27,7 @@ struct MapObjectRootHeader
     u32 version = 1;
 };
 
-constexpr u32 INVALID_TEXTURE_ID = 9999;
+constexpr u32 INVALID_TEXTURE_ID = std::numeric_limits<u32>().max();
 struct MapObjectMaterial
 {
     u16 materialType;

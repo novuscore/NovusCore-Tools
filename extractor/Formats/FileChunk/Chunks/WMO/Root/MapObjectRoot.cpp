@@ -140,4 +140,6 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
     output.write(reinterpret_cast<char const*>(&numGroups), sizeof(u32));
 
     output.close();
+
+    mapObjectRoot->materials.clear();
 }
