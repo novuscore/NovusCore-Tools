@@ -46,6 +46,34 @@ namespace DBC
         u32 MaxPlayers;
     };
 
+    struct LiquidType
+    {
+        u32 id;
+        u32 name;
+        u32 flags;
+        u32 type;
+        u32 soundEntriesId;
+        u32 spellId;
+        f32 maxDarkenDepth;
+        f32 fogDarkenIntensity;
+        f32 ambDarkenIntensity;
+        f32 dirDarkenIntensity;
+        u32 lightId;
+        f32 particleScale;
+        u32 particleMovement;
+        u32 particleTextureSlots;
+        u32 liquidMaterialId;
+
+        // TODO: Not reading everything
+    };
+
+    struct LiquidMaterial
+    {
+        u32 id;
+        u32 liquidVertexFormat;
+        u32 flags;
+    };
+
     struct Light
     {
         u32 id;

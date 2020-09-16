@@ -206,6 +206,64 @@ namespace Adt
             output.write(reinterpret_cast<char const*>(chunk->mapObjectPlacements.data()), sizeof(MapObjectPlacement) * numMapObjectPlacements); // Write map object placements
         }
 
+        // Water (This data is prepared in the Mh2o::Read, because we need direct access to the buffer in order to convert the data)
+        {
+            // Liquid Headers
+            {
+                u16 numLiquidHeaders = static_cast<u16>(mh2o.headers.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidHeaders), sizeof(u16)); // Write number of liquid headers
+
+                if (numLiquidHeaders > 0)
+                {
+                    output.write(reinterpret_cast<char const*>(mh2o.headers.data()), sizeof(CellLiquidHeader) * numLiquidHeaders); // Write liquid headers
+                }
+            }
+
+            // Liquid Instances
+            {
+                u16 numLiquidInstances = static_cast<u16>(mh2o.instances.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidInstances), sizeof(u16)); // Write number of liquid instances
+
+                if (numLiquidInstances > 0)
+                {
+                    output.write(reinterpret_cast<char const*>(mh2o.instances.data()), sizeof(CellLiquidInstance) * numLiquidInstances); // Write liquid instances
+                }
+            }
+
+            // Liquid Attributes
+            {
+                u8 numLiquidAttributes = static_cast<u8>(mh2o.attributes.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidAttributes), sizeof(u8)); // Write number of liquid attributes
+
+                if (numLiquidAttributes > 0)
+                {
+                    output.write(reinterpret_cast<char const*>(mh2o.attributes.data()), sizeof(Mh2o::LiquidAttributes) * numLiquidAttributes); // Write liquid attributes
+                }
+            }
+
+            // Liquid BitMask Data
+            {
+                u16 numLiquidBitMaskBytes = static_cast<u16>(mh2o.bitMaskForPatchesData.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidBitMaskBytes), sizeof(u16)); // Write number of liquid bitmap bytes
+
+                if (numLiquidBitMaskBytes > 0)
+                {
+                    output.write(reinterpret_cast<char const*>(mh2o.bitMaskForPatchesData.data()), sizeof(u8) * numLiquidBitMaskBytes); // Write liquid bitmap bytes
+                }
+            }
+
+            // Liquid Vertex Data
+            {
+                u32 numLiquidVertexDataBytes = static_cast<u32>(mh2o.vertexData.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidVertexDataBytes), sizeof(u32)); // Write number of liquid vertex data bytes
+
+                if (numLiquidVertexDataBytes > 0)
+                {
+                    output.write(reinterpret_cast<char const*>(mh2o.vertexData.data()), sizeof(u8) * numLiquidVertexDataBytes); // Write liquid vertex data bytes
+                }
+            }
+        }
+
         // Serialize our StringTable and write it to the file
         std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<1048576>();
         stringTable.Serialize(stringTableByteBuffer.get());

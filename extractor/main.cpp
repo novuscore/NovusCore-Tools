@@ -63,7 +63,7 @@ i32 main()
         };
     }
 
-    /* Load Database Config Handler for server */
+    // Load Config
     if (!globalData->config.LoadOrCreate(configPath, config))
         return 0;
 

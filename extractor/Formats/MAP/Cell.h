@@ -35,21 +35,7 @@ constexpr u16 CELL_TOTAL_GRID_SIZE = CELL_OUTER_GRID_SIZE + CELL_INNER_GRID_SIZE
 constexpr u32 CELL_ALPHAMAP_SIZE = 64 * 64;
 
 #pragma pack(push, 1)
-struct LiquidData
-{
-    u8 hasMultipleLiquidTypes = false;
-    u8 offsetX = 255;
-    u8 offsetY = 255;
-    u8 width = 0;
-    u8 height = 0;
-    u8 liquidFlags = 0;
-    u16 liquidEntry = 0;
-    f32 level = 20000;
-    u32 layers = 0;
-    f32 liquidHeight = 0;
-};
-
-constexpr u32 TextureIdInvalid = 9999;
+constexpr u32 TextureIdInvalid = std::numeric_limits<u32>().max();
 struct LayerData
 {
     u32 textureId = TextureIdInvalid;
@@ -62,8 +48,6 @@ struct Cell
     f32 heightData[CELL_TOTAL_GRID_SIZE] = { 0 };
     u8 normalData[CELL_TOTAL_GRID_SIZE][3] = { {127}, {255}, {127} }; // This is ugly but lets us pack this data into 25% of the original size
     u8 colorData[CELL_TOTAL_GRID_SIZE][3] = { {127}, {127}, {127} }; // This is ugly but lets us pack this data into 25% of the original size
-
-    LiquidData liquidData;
 
     u16 hole = 0;
 

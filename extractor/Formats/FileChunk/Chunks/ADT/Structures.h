@@ -174,29 +174,32 @@ namespace Adt
         static bool ReadADT(std::shared_ptr<Bytebuffer>& buffer, const FileChunkHeader& header, const Wdt::Wdt& wdt, Adt& adt);
     };
 
+    constexpr u32 MAX_VERTICES_PER_LIQUID_INSTANCE = 81;
+
     // Liquid Information Chunk
     struct Mh2o
     {
         struct LiquidInstance
         {
-            u32 liquidType = 0; // Foreign Key (Referencing LiquidType.dbc)
-
+            u16 liquidType = 0; // Foreign Key (Referencing LiquidType.dbc)
             u16 liquidVertexFormat = 0; // Classic, TBC and WOTLK Only (Cata+ Foreign Key)
+
             f32 minHeightLevel = 0;
             f32 maxHeightLevel = 0;
+
             u8 xOffset = 0;
             u8 yOffset = 0;
             u8 width = 0;
             u8 height = 0;
 
-            u32 bitmapExistsOffset = 0; // Not quite sure how this works
-            u32 vertexDataOffset = 0; // Not quite sure how this works
+            u32 bitmapExistsOffset = 0; // Will contain bytes equals to height (For every "Row" we have cells on, we need at least 8 bits to display which is 1 byte)
+            u32 vertexDataOffset = 0; // Vertex Data, can be in 2 formats for WOTLK and will always contain vertexCount entries for both arrays (f32* heightMap, char* depthMap), (f32* heightMap, UVEntry* uvMap)
         };
 
-        struct ChunkAttributes
+        struct LiquidAttributes
         {
             u64 fishable = 0; // seems to be usable as visibility information.
-            u64 deep = 0; // Might be related to fatigue area if bit set
+            u64 deep = 0; // Might be related to fatigue area if bit set.
 
             // Note that these are bitmasks.
         };
@@ -209,6 +212,13 @@ namespace Adt
         };
 
         std::vector<Mh2oData> data;
+        std::vector<CellLiquidHeader> headers;
+        std::vector<CellLiquidInstance> instances;
+        std::vector<LiquidAttributes> attributes;
+
+        std::vector<u8> bitMaskForPatchesData;
+        std::vector<u8> vertexData;
+
         static bool Read(std::shared_ptr<Bytebuffer>& buffer, const FileChunkHeader& header, const Wdt::Wdt& wdt, Adt& adt);
     };
 

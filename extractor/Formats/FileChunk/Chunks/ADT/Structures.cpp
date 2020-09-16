@@ -146,12 +146,128 @@ namespace Adt
     
     bool Mh2o::Read(std::shared_ptr<Bytebuffer>& buffer, const FileChunkHeader& header, const Wdt::Wdt& wdt, Adt& adt)
     {
+        u32 parentOffset = static_cast<u32>(buffer->readData);
         constexpr u32 Mh2oHeaderSize = (16 * 16) * sizeof(Mh2oData);
 
         if (!FileChunkUtils::LoadArrayOfStructs(buffer, Mh2oHeaderSize, adt.mh2o.data))
         {
             assert(false);
             return false;
+        }
+
+        size_t numMh2oEntires = adt.mh2o.data.size();
+        if (numMh2oEntires > 0)
+        {
+            std::vector<u32> attributeOffsets;
+            attributeOffsets.reserve(numMh2oEntires);
+
+            u32 numLiquidInstances = 0;
+            u32 firstLiquidInstanceOffset = std::numeric_limits<u32>().max();
+
+            adt.mh2o.headers.resize(numMh2oEntires);
+
+            for (u32 i = 0; i < numMh2oEntires; i++)
+            {
+                Mh2oData& data = adt.mh2o.data[i];
+
+                bool isFirstInstance = firstLiquidInstanceOffset == std::numeric_limits<u32>().max();
+                bool hasInstanceOffset = data.instancesOffset > 0;
+                bool hasAttributes = data.attributesOffset > 0;
+
+                // Push Attribute Offset
+                if (hasAttributes)
+                {
+                    attributeOffsets.push_back(parentOffset + data.attributesOffset);
+                }
+
+                // Increment Counter
+                numLiquidInstances += data.layerCount;
+
+                // Store First Instance Offset
+                firstLiquidInstanceOffset += (parentOffset + data.instancesOffset + 1) * (isFirstInstance * hasInstanceOffset);
+
+                // Create LiquidInfoHeader & pack data
+                CellLiquidHeader& cellLiquidHeader = adt.mh2o.headers[i];
+                cellLiquidHeader.packedData = hasAttributes << 7 | data.layerCount;
+                cellLiquidHeader.cellID = i;
+            }
+
+            u32 numAttributes = static_cast<u32>(attributeOffsets.size());
+            if (numAttributes)
+            {
+                adt.mh2o.attributes.resize(numAttributes);
+
+                for (u32 i = 0; i < numAttributes; i++)
+                {
+                    const u32& attributeOffset = attributeOffsets[i];
+
+                    Mh2o::LiquidAttributes& attribute = *reinterpret_cast<Mh2o::LiquidAttributes*>(&buffer->GetDataPointer()[attributeOffset]);
+                    adt.mh2o.attributes[i] = attribute;
+                }
+            }
+
+            if (numLiquidInstances > 0)
+            {
+                attributeOffsets.reserve(numMh2oEntires);
+
+                adt.mh2o.instances.resize(numLiquidInstances);
+                adt.mh2o.bitMaskForPatchesData.resize(numLiquidInstances * sizeof(u64)); // There are 8x8 patches in a cell, thus 64 bits are required to represent a state for all
+                adt.mh2o.vertexData.resize(numLiquidInstances * MAX_VERTICES_PER_LIQUID_INSTANCE * sizeof(LiquidVertexFormat_Height_UV_Depth)); // Preallocate for max vertex data size, and resize at the end
+
+                u32 totalBitMaskBytes = 0;
+                u32 totalVertexDataBytes = 0;
+
+                Mh2o::LiquidInstance* instances = reinterpret_cast<Mh2o::LiquidInstance*>(&buffer->GetDataPointer()[firstLiquidInstanceOffset]);
+
+                for (u32 i = 0; i < numLiquidInstances; i++)
+                {
+                    Mh2o::LiquidInstance* instance = &instances[i];
+
+                    bool hasBitMaskForPatches = instance->bitmapExistsOffset > 0;
+                    bool hasVertexData = instance->vertexDataOffset > 0;
+                    
+                    CellLiquidInstance& cellLiquidInstance = adt.mh2o.instances[i];
+                    cellLiquidInstance.liquidType = static_cast<u8>(instance->liquidType);
+                    cellLiquidInstance.packedData = (hasVertexData << 7 | hasBitMaskForPatches << 6) | static_cast<u8>(instance->liquidVertexFormat);
+                    cellLiquidInstance.heightLevel = hvec2(instance->minHeightLevel, instance->maxHeightLevel);
+                    cellLiquidInstance.packedOffset = instance->yOffset << 4 | instance->xOffset;
+                    cellLiquidInstance.packedSize = instance->height << 4 | instance->width;
+
+                    if (hasBitMaskForPatches)
+                    {
+                        // Blizzard perfectly aligns the bits in the bitmap meaning the bits are sequencial to the used patches defined by (offsetX, offsetY, width & height)
+                        u32 bitMaskBytes = (instance->width * instance->height + 7) / 8;
+
+                        memcpy(&adt.mh2o.bitMaskForPatchesData[totalBitMaskBytes], &buffer->GetDataPointer()[parentOffset + instance->bitmapExistsOffset], bitMaskBytes);
+                        totalBitMaskBytes += bitMaskBytes;
+                    }
+
+                    if (hasVertexData)
+                    {
+                        u32 vertexCount = (instance->width + 1) * (instance->height + 1);
+                        u32 vertexDataBytes = 0;
+
+                        // If LiquidVertexFormat == 0
+                        vertexDataBytes += (vertexCount * sizeof(LiquidVertexFormat_Height_Depth)) * (instance->liquidVertexFormat == 0);
+
+                        // If LiquidVertexFormat == 1
+                        vertexDataBytes += (vertexCount * sizeof(LiquidVertexFormat_Height_UV)) * (instance->liquidVertexFormat == 1);
+
+                        // If LiquidVertexFormat == 2
+                        vertexDataBytes += (vertexCount * sizeof(LiquidVertexFormat_Depth)) * (instance->liquidVertexFormat == 2);
+
+                        // If LiquidVertexFormat == 3
+                        vertexDataBytes += (vertexCount * sizeof(LiquidVertexFormat_Height_UV_Depth)) * (instance->liquidVertexFormat == 3);
+
+                        memcpy(&adt.mh2o.vertexData[totalVertexDataBytes], &buffer->GetDataPointer()[parentOffset + instance->vertexDataOffset], vertexDataBytes);
+                        totalVertexDataBytes += vertexDataBytes;
+                    }
+                }
+
+                // Resize vectors to fit with data size
+                adt.mh2o.bitMaskForPatchesData.resize(totalBitMaskBytes);
+                adt.mh2o.vertexData.resize(totalVertexDataBytes);
+            }
         }
 
         size_t extraDataSize = header.size - Mh2oHeaderSize;

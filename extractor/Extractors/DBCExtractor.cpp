@@ -24,6 +24,8 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     }
 
     LoadMap(globalData, mpqLoader, dbcReader);
+    LoadLiquidTypes(globalData, mpqLoader, dbcReader);
+    LoadLiquidMaterials(globalData, mpqLoader, dbcReader);
     LoadCreatureModelData(globalData, mpqLoader, dbcReader);
     LoadCreatureDisplayInfo(globalData, mpqLoader, dbcReader);
     LoadEmotesText(globalData, mpqLoader, dbcReader);
@@ -94,6 +96,110 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of maps
     output.write(reinterpret_cast<char const*>(_maps.data()), rows * sizeof(DBC::Map)); // Write maps
+
+    output.close();
+
+    return true;
+}
+bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\LiquidType.dbc");
+    if (!file)
+    {
+        NC_LOG_ERROR("Failed to load LiquidType.dbc");
+        return false;
+    }
+
+    NC_LOG_MESSAGE("Loading LiquidType.dbc...");
+    if (dbcReader->Load(file) != 0)
+        return false;
+
+    u32 rows = dbcReader->GetNumRows();
+    if (rows == 0)
+        return false;
+
+    _liquidTypes.reserve(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        DBC::LiquidType& liquidType = _liquidTypes.emplace_back();
+        liquidType.id = row.GetUInt32(0);
+        liquidType.name = GetNameIndexFromField(row, 1);
+        liquidType.flags = row.GetUInt32(2);
+        liquidType.type = row.GetUInt32(3);
+        liquidType.soundEntriesId = row.GetUInt32(4);
+        liquidType.spellId = row.GetUInt32(5);
+        liquidType.maxDarkenDepth = row.GetFloat(6);
+        liquidType.fogDarkenIntensity = row.GetFloat(7);
+        liquidType.ambDarkenIntensity = row.GetFloat(8);
+        liquidType.dirDarkenIntensity = row.GetFloat(9);
+        liquidType.lightId = row.GetUInt32(10);
+        liquidType.particleScale = row.GetFloat(11);
+        liquidType.particleMovement = row.GetUInt32(12);
+        liquidType.particleTextureSlots = row.GetUInt32(13);
+        liquidType.liquidMaterialId = row.GetUInt32(14);
+    }
+
+    fs::path outputPath = globalData->ndbcPath / "LiquidTypes.ndbc";
+    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
+
+    DBC::NDBCHeader header;
+    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
+    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of liquid types
+    output.write(reinterpret_cast<char const*>(_liquidTypes.data()), rows * sizeof(DBC::LiquidType)); // Write liquid types
+
+    output.close();
+
+    return true;
+}
+bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\LiquidMaterial.dbc");
+    if (!file)
+    {
+        NC_LOG_ERROR("Failed to load LiquidMaterial.dbc");
+        return false;
+    }
+
+    NC_LOG_MESSAGE("Loading LiquidMaterial.dbc...");
+    if (dbcReader->Load(file) != 0)
+        return false;
+
+    u32 rows = dbcReader->GetNumRows();
+    if (rows == 0)
+        return false;
+
+    _liquidMaterials.reserve(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        DBC::LiquidMaterial& liquidMaterial = _liquidMaterials.emplace_back();
+        liquidMaterial.id = row.GetUInt32(0);
+        liquidMaterial.liquidVertexFormat = row.GetUInt32(1);
+        liquidMaterial.flags = row.GetUInt32(2);
+    }
+
+    fs::path outputPath = globalData->ndbcPath / "LiquidMaterials.ndbc";
+    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
+
+    DBC::NDBCHeader header;
+    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
+    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of liquid materials
+    output.write(reinterpret_cast<char const*>(_liquidMaterials.data()), rows * sizeof(DBC::LiquidMaterial)); // Write liquid materials
 
     output.close();
 

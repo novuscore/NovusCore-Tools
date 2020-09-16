@@ -69,10 +69,67 @@ struct MapObjectPlacement
     u16 scale;
 };
 
+struct CellLiquidHeader
+{
+    // Packed Format
+    // Bit 1-7 (numInstances)
+    // Bit 8 (hasAttributes)
+    u8 packedData = 0;
+
+    u8 cellID = 0;
+};
+
+struct CellLiquidInstance
+{
+    u8 liquidType = 0;
+
+    // Packed Format
+    // Bit 1-6 (liquidVertexFormat)
+    // Bit 7 (hasBitMaskForPatches)
+    // Bit 8 (hasVertexData)
+    u8 packedData = 0;
+
+    hvec2 heightLevel = hvec2(0.f, 0.f); // Min, Max
+    u8 packedOffset = 0; // X, Y
+    u8 packedSize = 0; // Width, Height
+};
+
+
+// The following 4 Structs only exists for the purpose of being able to sizeof() inside for Mh2o::Read
+// This makes it easier to read the code (The actual) structs in memory are arrays one after another
+struct LiquidVertexFormat_Height_Depth
+{
+    f32 heightMap;
+    u8 depthMap;
+};
+
+struct LiquidVertexFormat_Height_UV
+{
+    f32 heightMap;
+
+    u16 uvX;
+    u16 uvY;
+};
+
+struct LiquidVertexFormat_Depth
+{
+    u8 depthMap;
+};
+
+struct LiquidVertexFormat_Height_UV_Depth
+{
+    f32 heightMap;
+
+    u16 uvX;
+    u16 uvY;
+
+    u8 depthMap;
+};
+
 struct MapChunkHeader
 {
     u32 token = MAP_CHUNK_TOKEN;
-    u32 version = 3;
+    u32 version = 4;
 };
 
 struct Chunk
