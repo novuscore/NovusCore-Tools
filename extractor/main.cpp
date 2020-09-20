@@ -46,7 +46,8 @@ i32 main()
     {
         config["Texture"] =
         {
-            {"Extract", true}
+            {"Extract", true},
+            {"DisableStringTableGeneration", false}
         };
 
         config["Map"] =
@@ -59,7 +60,6 @@ i32 main()
         config["M2"] =
         {
             {"Extract", true},
-            {"DisableStringTableGeneration", false}
         };
     }
 
