@@ -141,6 +141,39 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
         renderBatch.startIndex = moba.data[i].startIndex;
         renderBatch.indexCount = moba.data[i].indexCount;
         renderBatch.materialID = moba.data[i].materialId;
+
+        // Calculate culling data
+        CullingData& cullingData = mapObject->cullingData.emplace_back();
+
+        const u32 start = renderBatch.startIndex;
+        const u32 end = start + renderBatch.indexCount;
+        for (u32 i = start; i < end; i++)
+        {
+            const u16 index = movi.indices[i];
+            vec3 position = movt.vertexPosition[index];
+
+            position = vec3(-position.x, position.z, -position.y);
+
+            for (u32 j = 0; j < 3; j++)
+            {
+                if (position[j] < cullingData.minBoundingBox[j])
+                {
+                    cullingData.minBoundingBox[j] = position[j];
+                }
+                if (position[j] > cullingData.maxBoundingBox[j])
+                {
+                    cullingData.maxBoundingBox[j] = position[j];
+                }
+            }
+        }
+
+        // Then get the radius of the culling sphere
+        vec3 minPos = cullingData.minBoundingBox;
+        vec3 maxPos = cullingData.maxBoundingBox;
+
+        f32 distance = glm::distance(minPos, maxPos) / 2.0f;
+
+        cullingData.boundingSphereRadius = distance;
     }
 
     // Convert vertices
@@ -248,10 +281,14 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
     if (numRenderBatches > 0)
     {
         output.write(reinterpret_cast<char const*>(mapObject->renderBatches.data()), sizeof(RenderBatch) * numRenderBatches);
+
+        // Write per-renderbatch culling data
+        output.write(reinterpret_cast<char const*>(mapObject->cullingData.data()), sizeof(CullingData) * numRenderBatches);
     }
 
     output.close();
 
     mapObject->vertices.clear();
     mapObject->renderBatches.clear();
+    mapObject->cullingData.clear();
 }

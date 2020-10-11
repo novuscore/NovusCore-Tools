@@ -24,14 +24,7 @@
 struct MapObjectHeader
 {
     u32 token = 7236975; // UTF8 -> Binary -> Decimal for "nmo"
-    u32 version = 3;
-};
-
-struct RenderBatch
-{
-    u32 startIndex;
-    u16 indexCount;
-    u8 materialID;
+    u32 version = 4;
 };
 
 struct MapObjectVertex
@@ -41,11 +34,26 @@ struct MapObjectVertex
     hvec4 uv = hvec4(static_cast<f16>(0.0f));
 }; // 16 bytes
 
+struct RenderBatch
+{
+    u32 startIndex;
+    u16 indexCount;
+    u8 materialID;
+};
+
+struct CullingData
+{
+    hvec3 minBoundingBox = hvec3(static_cast<f16>(100000.0f));
+    hvec3 maxBoundingBox = hvec3(static_cast<f16>(-100000.0f));
+    f32 boundingSphereRadius = 0.0f;
+}; // 16 bytes
+
 struct MapObject
 {
     MapObjectHeader header;
 
     std::vector<MapObjectVertex> vertices;
     std::vector<RenderBatch> renderBatches;
+    std::vector<CullingData> cullingData;
 };
 #pragma pack(pop)
