@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <sstream>
 
+#include "../Formats/MAP/MapHeader.h"
 #include "../Formats/FileChunk/FileChunkLoader.h"
 #include "../Formats/FileChunk/Chunks/WDT/Wdt.h"
 #include "../Formats/FileChunk/Chunks/ADT/Adt.h"
@@ -51,7 +52,17 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
         ZoneScoped;
         const std::string& internalName = mapNames ? mapConfig["MapNames"][i] : globalData->dbcExtractor->GetStringTable().GetString(maps[i].InternalName);
 
-        // Create Folders for the Map & Map's Alpha Map
+        // Only process map if a WDT file is found
+        {
+            std::stringstream filePathStream;
+
+            // WDT File
+            filePathStream << "world\\maps\\" << internalName << "\\" << internalName << ".WDT";
+
+            if (!mpqLoader->HasFile(filePathStream.str()))
+                continue;
+        }
+
         std::filesystem::create_directory(globalData->mapPath / internalName);
         std::filesystem::create_directory(mapAlphaMapPath / internalName);
 
@@ -73,6 +84,9 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
             Wdt::Wdt wdt;
             if (!chunkLoader->LoadWdt(fileWDT, wdt))
                 return;
+
+            MapHeader mapHeader;
+            mapHeader.flags.UseMapObjectInsteadOfTerrain = wdt.mphd.flags.UsesGlobalMapObj;
 
             if (!wdt.mphd.flags.UsesGlobalMapObj)
             {
@@ -123,14 +137,13 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
                         {
                             std::string wmoName;
                             wmoNameBuffer.GetString(wmoName);
-
-                            u32 index = _wmoStringTable.AddString(wmoName);
+                            _wmoStringTable.AddString(wmoName);
                         }
 
-                        std::filesystem::path adtSubPath =  internalName;
+                        std::filesystem::path adtSubPath = internalName;
 
                         // Extract data we want into our own format and then write adt to disk
-                        adt.SaveToDisk(globalData, adtSubPath / (fileName + ".nmap"));
+                        adt.SaveToDisk(globalData, adtSubPath / (fileName + ".nchunk"));
                     });
                 }
 
@@ -142,20 +155,54 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
             }
             else
             {
-                // Here we have a map with just a global map object
+                // Here we have a map with just a global map object (Save the WMO
+                Bytebuffer wmoNameBuffer(wdt.mwmo.filenames, wdt.mwmo.size);
+
+                std::string wmoPath;
+                wmoNameBuffer.GetString(wmoPath);
+                _wmoStringTable.AddString(wmoPath);
+
+                fs::path nmorPath = wmoPath;
+                nmorPath.replace_extension(".nmor");
+
+                mapHeader.mapObjectName = nmorPath.string();
+
+                Adt::Modf::ModfData& modf = wdt.modf.data[0];
+
+                mapHeader.mapObjectPlacement.nameID = std::numeric_limits<u32>().max();
+                mapHeader.mapObjectPlacement.position = modf.position;
+                mapHeader.mapObjectPlacement.rotation = modf.rotation;
+                mapHeader.mapObjectPlacement.scale = 1; // TODO: Until Legion this isn't used at all
+            }
+
+            // Add Map Header
+            {
+                filePathStream.clear();
+                filePathStream.str("");
+
+                filePathStream << internalName << "\\" << internalName << ".nmap";
+
+                mapHeader.SaveToDisk(globalData, filePathStream.str());
             }
         });
     }
 
-    NC_LOG_MESSAGE("Adding Map batch of %u jobs", mapJobBatch.GetJobCount());
+    size_t numMapJobCount = mapJobBatch.GetJobCount();
+    NC_LOG_MESSAGE("Adding Map batch of %u jobs", numMapJobCount);
 
-    JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(mapJobBatch);
-    mainBatchToken.WaitUntilFinished();
-
-    JobBatchToken token;
-    while (jobBatchTokens.try_dequeue(token))
+    if (numMapJobCount > 0)
     {
-        token.WaitUntilFinished();
+        JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(mapJobBatch);
+        mainBatchToken.WaitUntilFinished();
+    }
+
+    if (jobBatchTokens.size_approx() > 0)
+    {
+        JobBatchToken token;
+        while (jobBatchTokens.try_dequeue(token))
+        {
+            token.WaitUntilFinished();
+        }
     }
 
     for (u32 i = 0; i < _wmoStringTable.GetNumStrings(); i++)
@@ -213,10 +260,14 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
         });
     }
 
-    NC_LOG_MESSAGE("Adding WMO batch of %u jobs", wmoJobBatch.GetJobCount());
+    size_t numWMOJobCount = wmoJobBatch.GetJobCount();
+    NC_LOG_MESSAGE("Adding WMO batch of %u jobs", numWMOJobCount);
 
-    JobBatchToken wmoBatchToken = jobBatchRunner->AddBatch(wmoJobBatch);
-    wmoBatchToken.WaitUntilFinished();
+    if (numWMOJobCount > 0)
+    {
+        JobBatchToken wmoBatchToken = jobBatchRunner->AddBatch(wmoJobBatch);
+        wmoBatchToken.WaitUntilFinished();
+    }
 
     return;
 }

@@ -35,9 +35,32 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 }
 
 constexpr u32 InvalidNameIndex = std::numeric_limits<u32>().max();
-u32 DBCExtractor::GetNameIndexFromField(DBCReader::DBCRow& row, u32 field)
+u32 DBCExtractor::GetStringIndexFromField(DBCReader::DBCRow& row, u32 field)
 {
     std::string value = row.GetString(field);
+
+    if (value.length() == 0)
+        return InvalidNameIndex;
+
+    if (StringUtils::EndsWith(value, ".mdx"))
+        value = value.substr(0, value.length() - 4) + ".nm2";
+
+    if (StringUtils::EndsWith(value, ".m2"))
+        value = value.substr(0, value.length() - 3) + ".nm2";
+
+    return _dbcStringTable.AddString(value);
+}
+
+u32 DBCExtractor::GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 field)
+{
+    std::string value = "";
+    for (u8 i = 0; i < 16; i++)
+    {
+        value = row.GetString(field + i);
+
+        if (value.length() != 0)
+            break;
+    }
 
     if (value.length() == 0)
         return InvalidNameIndex;
@@ -76,10 +99,10 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
 
         DBC::Map& map = _maps.emplace_back();
         map.Id = row.GetUInt32(0);
-        map.InternalName = GetNameIndexFromField(row, 1);
+        map.InternalName = GetStringIndexFromField(row, 1);
         map.InstanceType = row.GetUInt32(2);
         map.Flags = row.GetUInt32(3);
-        map.Name = GetNameIndexFromField(row, 5);
+        map.Name = GetLocaleStringIndexFromField(row, 5);
         map.Expansion = row.GetUInt32(63);
         map.MaxPlayers = row.GetUInt32(65);
     }
@@ -126,7 +149,7 @@ bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::
 
         DBC::LiquidType& liquidType = _liquidTypes.emplace_back();
         liquidType.id = row.GetUInt32(0);
-        liquidType.name = GetNameIndexFromField(row, 1);
+        liquidType.name = GetStringIndexFromField(row, 1);
         liquidType.flags = row.GetUInt32(2);
         liquidType.type = row.GetUInt32(3);
         liquidType.soundEntriesId = row.GetUInt32(4);
@@ -231,7 +254,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
             DBC::CreatureModelData& creatureModelData = _creatureModelDatas.emplace_back();
             creatureModelData.id = row.GetUInt32(0);
             creatureModelData.flags = row.GetUInt32(1);
-            creatureModelData.modelPath = GetNameIndexFromField(row, 2);
+            creatureModelData.modelPath = GetStringIndexFromField(row, 2);
             creatureModelData.sizeClass = row.GetUInt32(3);
             creatureModelData.modelScale = row.GetFloat(4);
             creatureModelData.bloodLevelId = row.GetUInt32(5);
@@ -306,10 +329,10 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
             creatureDisplayInfo.scale = row.GetFloat(4);
             creatureDisplayInfo.opacity = row.GetUInt32(5);
 
-            creatureDisplayInfo.texture1 = GetNameIndexFromField(row, 6);
-            creatureDisplayInfo.texture2 = GetNameIndexFromField(row, 7);
-            creatureDisplayInfo.texture3 = GetNameIndexFromField(row, 8);
-            creatureDisplayInfo.portraitTextureName = GetNameIndexFromField(row, 9);
+            creatureDisplayInfo.texture1 = GetStringIndexFromField(row, 6);
+            creatureDisplayInfo.texture2 = GetStringIndexFromField(row, 7);
+            creatureDisplayInfo.texture3 = GetStringIndexFromField(row, 8);
+            creatureDisplayInfo.portraitTextureName = GetStringIndexFromField(row, 9);
 
             creatureDisplayInfo.bloodLevelId = row.GetUInt32(10);
             creatureDisplayInfo.bloodId = row.GetUInt32(11);
@@ -363,7 +386,7 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
 
         DBC::EmotesText& emoteText = _emotesTexts.emplace_back();
         emoteText.Id = row.GetUInt32(0);
-        emoteText.InternalName = GetNameIndexFromField(row, 1);
+        emoteText.InternalName = GetStringIndexFromField(row, 1);
         emoteText.AnimationId = row.GetUInt32(2);
     }
 
@@ -542,8 +565,8 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
         spell.SpellIconID = row.GetUInt32(133);
         spell.ActiveIconID = row.GetUInt32(134);
         spell.SpellPriority = row.GetUInt32(135);
-        spell.SpellName = GetNameIndexFromField(row, 136);    // Skip 152 for SpellNameFlag
-        spell.SpellSubText = GetNameIndexFromField(row, 153); // Skip 169 for RankFlags
+        spell.SpellName = GetLocaleStringIndexFromField(row, 136);    // Skip 152 for SpellNameFlag
+        spell.SpellSubText = GetLocaleStringIndexFromField(row, 153); // Skip 169 for RankFlags
         // Skip 170 - 203 for unnecessary text stuff that we don't need
         spell.ManaCostPercentage = row.GetUInt32(204);
         spell.StartRecoveryCategory = row.GetUInt32(205);

@@ -28,7 +28,8 @@ public:
     StringTable& GetStringTable() { return _dbcStringTable; }
 
 private:
-    u32 GetNameIndexFromField(DBCReader::DBCRow& row, u32 field);
+    u32 GetStringIndexFromField(DBCReader::DBCRow& row, u32 field);
+    u32 GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 field);
 
     bool LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
     bool LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);

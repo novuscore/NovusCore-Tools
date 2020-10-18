@@ -24,8 +24,8 @@
 
 #include <vector>
 
-constexpr i32 MAP_CHUNK_TOKEN = 1313685840;
-constexpr i32 MAP_CHUNK_VERSION = 808464434;
+constexpr i32 MAP_CHUNK_TOKEN = 1128812107;  // UTF8 -> Binary -> Decimal for "chnk"
+constexpr i32 MAP_CHUNK_VERSION = 1;
 
 constexpr u32 MAP_CHUNKS_PER_MAP_SIDE = 64;
 constexpr u16 MAP_CHUNK_INVALID = std::numeric_limits<u16>().max();

@@ -59,7 +59,7 @@ i32 main()
 
         config["M2"] =
         {
-            {"Extract", true},
+            {"Extract", true}
         };
     }
 

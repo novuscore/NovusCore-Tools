@@ -39,7 +39,7 @@ namespace Wdt
         u32 Unk_0x40 : 1;
         u32 AdtHasHeightTexturing : 1;
         u32 Unk_0x100 : 1;
-        u32 UdtHasMaid : 1;
+        u32 AdtHasMaid : 1;
         u32 Unk_0x400 : 1;
         u32 Unk_0x800 : 1;
         u32 Unk_0x1000 : 1;
