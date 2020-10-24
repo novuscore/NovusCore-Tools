@@ -424,7 +424,7 @@ namespace BLP
         {
             case DXT1: return &BlpConvert::Dxt1GetBlock;
             case DXT3: return &BlpConvert::Dxt3GetBlock;
-            case DXT5: return &BlpConvert::Dxt3GetBlock;
+            case DXT5: return &BlpConvert::Dxt5GetBlock;
             default: throw BlpConvertException("Unrecognized dxt format");
         }
     }
