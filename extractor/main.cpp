@@ -80,7 +80,7 @@ i32 main()
         fs::create_directory(globalData->ndbcPath);
         fs::create_directory(globalData->texturePath);
         fs::create_directory(globalData->mapPath);
-        fs::create_directory(globalData->nm2Path);
+        fs::create_directory(globalData->cModelPath);
     }
 
     // Start Job Batch Runner
