@@ -5,6 +5,7 @@
 #include "../Utils/JobBatchRunner.h"
 #include "../Utils/MPQLoader.h"
 #include "../Formats/M2/M2.h"
+#include "../Formats/M2/ComplexModel.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -17,15 +18,17 @@ void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     if (m2Config["Extract"] == false)
         return;
 
+    NC_LOG_SUCCESS("Fetching M2s");
+
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     JobBatch m2JobBatch;
     mpqLoader->GetFiles("*.m2", [&](char* fileName, size_t fileNameLength)
     {
         std::string fileNameStr = fileName;
-        std::string name = std::string(fileName, fileNameLength - 3) + ".nm2";
+        std::string name = std::string(fileName, fileNameLength - 3) + ".cmodel";
 
-        fs::path outputPath = (globalData->nm2Path / name).make_preferred();
+        fs::path outputPath = (globalData->cModelPath / name).make_preferred();
 
         // Create Directories for file
         fs::create_directories(outputPath.parent_path());
@@ -35,7 +38,9 @@ void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)
             M2File modelFile;
             if (modelFile.GetFromMPQ(fileNameStr))
             {
-                modelFile.SaveToDisk(outputPath);
+                ComplexModel complexModel;
+                complexModel.ReadFromM2(modelFile);
+                complexModel.SaveToDisk(outputPath);
             }
         });
     });

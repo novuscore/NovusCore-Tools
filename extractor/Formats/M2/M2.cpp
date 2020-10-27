@@ -17,36 +17,38 @@ bool M2File::GetFromMPQ(std::string_view fileName)
     ZoneScopedN("M2::GetFromMPQ");
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-    std::shared_ptr<Bytebuffer> modelBuffer = mpqLoader->GetFile(fileName);
+    m2Buffer = mpqLoader->GetFile(fileName);
 
-    if (!modelBuffer)
+    if (!m2Buffer)
         return false;
 
-    if (!modelBuffer->Get(m2))
+    if (!m2Buffer->Get(m2))
         return false;
 
-    m2Buffer = modelBuffer;
+    if (m2.flags.Use_Texture_Combiner_Combos)
+    {
+        if (!m2Buffer->Get(textureCombinerCombos))
+            return false;
+    }
 
-    const std::string m2BasePath = std::string(fileName.substr(0, fileName.length() - 3)) + "0"; // -3 removing (.m2)
-    for (u32 i = 0; i < m2.numSkinProfiles; i++)
     {
         ZoneScopedN("M2::GetFromMPQ::GetSkinFile");
 
-        const std::string m2SkinPath = m2BasePath + std::to_string(i) + ".skin";
-        std::shared_ptr<Bytebuffer> skinBuffer = mpqLoader->GetFile(m2SkinPath);
+        const std::string m2BasePath = std::string(fileName.substr(0, fileName.length() - 3)) + "0"; // -3 removing (.m2)
+        const std::string m2SkinPath = m2BasePath + "0.skin";
+        skinBuffer = mpqLoader->GetFile(m2SkinPath);
 
-        if (!skinBuffer)
-            continue;
-
-        M2SkinFile& skinFile =  skinFiles.emplace_back();
-        if (!skinFile.GetFromBuffer(skinBuffer))
-            return false;
+        if (skinBuffer)
+        {
+            if (!skinBuffer->Get(skin))
+                return false;
+        }
     }
 
     return true;
  }
 
-void M2File::SaveToDisk(const fs::path& filePath)
+/*void M2File::SaveToDisk(const fs::path& filePath)
 {
     ZoneScopedN("M2::SaveToFile");
 
@@ -122,12 +124,12 @@ void M2File::SaveToDisk(const fs::path& filePath)
     }
 
     // Write numTextureCombos & TextureCombos
-    u32 numTextureCombos = m2.textureCombos.size;
+    u32 numTextureCombos = m2.textureLookupTable.size;
     output.write(reinterpret_cast<char const*>(&numTextureCombos), sizeof(numTextureCombos));
 
     if (numTextureCombos > 0)
     {
-        output.write(reinterpret_cast<char const*>(&m2Buffer->GetDataPointer()[m2.textureCombos.offset]), sizeof(u16) * numTextureCombos);
+        output.write(reinterpret_cast<char const*>(&m2Buffer->GetDataPointer()[m2.textureLookupTable.offset]), sizeof(u16) * numTextureCombos);
     }
 
     // Write NumSkinProfiles
@@ -200,7 +202,7 @@ void M2File::SaveToDisk(const fs::path& filePath)
                     u16 geosetIndex = skinBatch->geosetIndex;
                     u16 materialIndex = skinBatch->materialIndex;
                     u16 textureCount = skinBatch->textureCount;
-                    u16 textureComboIndex = skinBatch->textureComboIndex;
+                    u16 textureLookupId = skinBatch->textureLookupId;
 
                     output.write(reinterpret_cast<char const*>(&flags), sizeof(flags));
                     output.write(reinterpret_cast<char const*>(&shaderId), sizeof(shaderId));
@@ -208,20 +210,11 @@ void M2File::SaveToDisk(const fs::path& filePath)
                     output.write(reinterpret_cast<char const*>(&geosetIndex), sizeof(geosetIndex));
                     output.write(reinterpret_cast<char const*>(&materialIndex), sizeof(materialIndex));
                     output.write(reinterpret_cast<char const*>(&textureCount), sizeof(textureCount));
-                    output.write(reinterpret_cast<char const*>(&textureComboIndex), sizeof(textureComboIndex));
+                    output.write(reinterpret_cast<char const*>(&textureLookupId), sizeof(textureLookupId));
                 }
             }
         }
     }
 
     output.close();
-}
-
-bool M2SkinFile::GetFromBuffer(std::shared_ptr<Bytebuffer>& buffer)
-{
-    if (!buffer->Get(skin))
-        return false;
-    
-    skinBuffer = buffer;
-    return true;
-}
+}*/

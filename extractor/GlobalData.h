@@ -20,7 +20,7 @@ public:
         texturePath.make_preferred();
         mapPath.make_preferred();
         wmoPath.make_preferred();
-        nm2Path.make_preferred();
+        cModelPath.make_preferred();
     }
 
     fs::path currentPath = fs::current_path();
@@ -29,7 +29,7 @@ public:
     fs::path texturePath = extractedDataPath / "Textures";
     fs::path mapPath = extractedDataPath / "Maps";
     fs::path wmoPath = extractedDataPath / "MapObjects";
-    fs::path nm2Path = extractedDataPath / "NM2";
+    fs::path cModelPath = extractedDataPath / "CModels";
 
     std::shared_ptr<DBCExtractor> dbcExtractor = std::make_shared<DBCExtractor>();
     std::shared_ptr<TextureExtractor> textureExtractor = std::make_shared<TextureExtractor>();

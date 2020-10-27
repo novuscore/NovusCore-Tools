@@ -23,12 +23,13 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     ZoneScoped;
 
-    NC_LOG_MESSAGE("Extracting ADTs...");
     auto& globalData = ServiceLocator::GetGlobalData();
 
     json& mapConfig = globalData->config.GetJsonObjectByKey("Map");
     if (mapConfig["Extract"] == false)
         return;
+
+    NC_LOG_MESSAGE("Extracting ADTs...");
 
     std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
     std::filesystem::create_directories(mapAlphaMapPath);

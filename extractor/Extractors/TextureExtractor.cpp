@@ -81,7 +81,7 @@ void TextureExtractor::CreateTextureStringTableFile()
     std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
     if (!output)
     {
-        printf("Failed to create nm2 file. Check admin permissions\n");
+        printf("Failed to create Texture StringTable file. Check admin permissions\n");
         return;
     }
 

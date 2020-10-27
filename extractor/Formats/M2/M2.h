@@ -19,12 +19,12 @@ struct M2Array
     u32 size = 0;
     u32 offset = 0;
 
-    T* Get(const std::shared_ptr<Bytebuffer> buffer)
+    T* Get(const std::shared_ptr<Bytebuffer> buffer) const
     {
         return GetElement(buffer, 0);
     }
 
-    T* GetElement(const std::shared_ptr<Bytebuffer> buffer, u32 index)
+    T* GetElement(const std::shared_ptr<Bytebuffer> buffer, u32 index) const
     {
         assert(index < size);
         return reinterpret_cast<T*>(&buffer->GetDataPointer()[offset + (sizeof(T) * index)]);
@@ -79,14 +79,6 @@ struct Quat16
 };
 using M2CompQuat = Quat16;
 
-struct U8Vec
-{
-    u8 a;
-    u8 b;
-    u8 c;
-    u8 d;
-};
-
 template <typename T>
 struct M2SplineKey
 {
@@ -116,14 +108,16 @@ struct M2Color
     M2Track<i16> alpha; // (0) == Transparent, (0x7FFF) == Opaque. (Normally NonInterp) This is referred to as a "Fixed16" basically divide by 0x7FFF to get the f32 value
 };
 
+struct M2TextureFlag
+{
+    u32 wrapX : 1;
+    u32 wrapY : 1;
+};
+
 struct M2Texture
 {
     u32 type = 0; // Check https://wowdev.wiki/M2#Textures
-    struct M2TextureFlags
-    {
-        u32 wrapX : 1;
-        u32 wrapY : 1;
-    } flags;
+    M2TextureFlag flags;
 
     M2Array<char> fileName; // This is only valid if type == 0, however for non 0 types, this still points to a 0 terminated string
 };
@@ -140,17 +134,19 @@ struct M2TextureTransform
     M2Track<vec3> scaling;
 };
 
+struct M2MaterialFlag
+{
+    u16 unLit : 1;
+    u16 unFogged : 1;
+    u16 disableBackfaceCulling : 1;
+    u16 depthTest : 1;
+    u16 depthWrite : 1;
+    u16 : 5;
+};
+
 struct M2Material
 {
-    struct M2MaterialFlags
-    {
-        u16 unLit : 1;
-        u16 unFogged : 1;
-        u16 disableBackfaceCulling : 1;
-        u16 depthTest;
-        u16 depthWrite;
-        u16 : 5;
-    } flags;
+    M2MaterialFlag flags;
     u16 blendingMode; // Check https://wowdev.wiki/M2/Rendering#M2BLEND
 };
 
@@ -387,6 +383,24 @@ struct M2CompBone
     vec3 pivot = vec3(0, 0, 0); // The pivot point for the bone
 };
 
+struct M2Flag
+{
+    u32 Tilt_X : 1;
+    u32 Tilt_Y : 1;
+    u32 : 1;
+    u32 Use_Texture_Combiner_Combos : 1; // (TBC+)
+    u32 : 1; // (TBC+)
+    u32 Load_Physics_Data : 1; // (MOP+)
+    u32 : 1; // (MOP+)
+    u32 Unk_0x80 : 1; // (WOD+)
+    u32 Camera_Related : 1; // (WOD+)
+    u32 New_Particle_Record : 1; // (Legion+)
+    u32 Unk_0x400 : 1; // (Legion+)
+    u32 Texture_Transforms_Use_Bone_Sequences : 1; // (Legion+)
+
+    // 0x1000 to 0x200000 are unk (Legion+)
+};
+
 struct M2
 {
     struct M2Header
@@ -396,23 +410,7 @@ struct M2
     } header;
     M2Array<char> name;
 
-    struct M2Flags
-    {
-        u32 tiltX : 1;
-        u32 tiltY : 1;
-        u32 : 1;
-        u32 useTextureCombinerCombos : 1; // (TBC+)
-        u32 : 1; // (TBC+)
-        u32 loadPhysicsData : 1; // (MOP+)
-        u32 : 1; // (MOP+)
-        u32 unk_0x80 : 1; // (WOD+)
-        u32 cameraRelated : 1; // (WOD+)
-        u32 newParticleRecord : 1; // (Legion+)
-        u32 unk_0x400 : 1; // (Legion+)
-        u32 textureTransformsUseBoneSequences : 1; // (Legion+)
-
-        // 0x1000 to 0x200000 are unk (Legion+)
-    } flags;
+    M2Flag flags;
 
     M2Array<M2Loop> loops;
     M2Array<M2Sequence> sequences;
@@ -431,10 +429,10 @@ struct M2
     M2Array<u16> textureIndicesById;
     M2Array<M2Material> materials;
     M2Array<u16> boneCombos;
-    M2Array<u16> textureCombos;
-    M2Array<u16> textureTransformBoneMap;
-    M2Array<u16> textureWeightCombos;
-    M2Array<u16> textureTransformCombos;
+    M2Array<u16> textureLookupTable;
+    M2Array<u16> textureUnitLookupTable;
+    M2Array<u16> textureTransparencyLookupTable;
+    M2Array<u16> textureUVAnimationLookup;
 
     AABB boundingBox; // min/max( [1].z, 2.0277779f ) - 0.16f seems to be the maximum camera height
     f32 boundingSphereRadius = 0;
@@ -488,12 +486,11 @@ struct M2Batch
     u16 materialIndex;
     u16 materialLayer;
     u16 textureCount;
-    u16 textureComboIndex;
-    u16 textureCoordComboIndex;
-    u16 textureWeightComboIndex;
-    u16 textureTransformComboIndex;
+    u16 textureLookupId;
+    u16 textureUnitLookupId;
+    u16 textureTransparencyLookupId;
+    u16 textureUVAnimationLookupId;
 };
-
 struct M2Skin
 {
     struct M2SkinHeader
@@ -503,18 +500,10 @@ struct M2Skin
 
     M2Array<u16> vertices;
     M2Array<u16> indices;
-    M2Array<U8Vec> bones;
+    M2Array<u8vec4> bones;
     M2Array<M2SkinSelection> subMeshes;
     M2Array<M2Batch> batches;
     u32 boneCountMax;
-};
-
-struct M2SkinFile
-{
-    M2Skin skin;
-    std::shared_ptr<Bytebuffer> skinBuffer;
-
-    bool GetFromBuffer(std::shared_ptr<Bytebuffer>& buffer);
 };
 
 class StringTable;
@@ -524,9 +513,11 @@ struct M2File
     M2 m2;
     std::shared_ptr<Bytebuffer> m2Buffer;
 
-    std::vector<M2SkinFile> skinFiles;
+    M2Array<uint16_t> textureCombinerCombos;
+
+    M2Skin skin;
+    std::shared_ptr<Bytebuffer> skinBuffer;
 
     bool GetFromMPQ(std::string_view fileName);
-    void SaveToDisk(const fs::path& filePath);
 };
 #pragma pack(pop)

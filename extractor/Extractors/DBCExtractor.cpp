@@ -43,10 +43,10 @@ u32 DBCExtractor::GetStringIndexFromField(DBCReader::DBCRow& row, u32 field)
         return InvalidNameIndex;
 
     if (StringUtils::EndsWith(value, ".mdx"))
-        value = value.substr(0, value.length() - 4) + ".nm2";
+        value = value.substr(0, value.length() - 4) + ".cmodel";
 
     if (StringUtils::EndsWith(value, ".m2"))
-        value = value.substr(0, value.length() - 3) + ".nm2";
+        value = value.substr(0, value.length() - 3) + ".cmodel";
 
     return _dbcStringTable.AddString(value);
 }
@@ -66,10 +66,10 @@ u32 DBCExtractor::GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 fiel
         return InvalidNameIndex;
 
     if (StringUtils::EndsWith(value, ".mdx"))
-        value = value.substr(0, value.length() - 4) + ".nm2";
+        value = value.substr(0, value.length() - 4) + ".cmodel";
 
     if (StringUtils::EndsWith(value, ".m2"))
-        value = value.substr(0, value.length() - 3) + ".nm2";
+        value = value.substr(0, value.length() - 3) + ".cmodel";
 
     return _dbcStringTable.AddString(value);
 }
