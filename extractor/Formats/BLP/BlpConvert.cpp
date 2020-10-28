@@ -54,7 +54,14 @@ namespace BLP
 
         if (format == Format::DXT1)
         {
-            nvttFormat = nvtt::Format::Format_DXT1;
+            if (header.alphaDepth == 1)
+            {
+                nvttFormat = nvtt::Format::Format_DXT1a;
+            }
+            else
+            {
+                nvttFormat = nvtt::Format::Format_DXT1;
+            }
         }
         else if (format == Format::DXT3)
         {
