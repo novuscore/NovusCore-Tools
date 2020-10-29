@@ -139,7 +139,7 @@ namespace Adt
             // Insert WMO placement data into Chunk
             for (Modf::ModfData& modfData : modf.data)
             {
-                MapObjectPlacement& mapObjectPlacement = chunk->mapObjectPlacements.emplace_back();
+                Placement& mapObjectPlacement = chunk->mapObjectPlacements.emplace_back();
 
                 u32 offsetIntoMWMO;
                 if (!mwidBuffer.Get<u32>(offsetIntoMWMO, modfData.nameId * sizeof(u32)))
@@ -162,6 +162,41 @@ namespace Adt
                 mapObjectPlacement.position = modfData.position;
                 mapObjectPlacement.rotation = modfData.rotation;
                 mapObjectPlacement.scale = 1; // TODO: Until Legion this isn't used at all
+            }
+        }
+
+        // We need to get the name of all the M2s this ADT uses
+        if (mddf.data.size() > 0)
+        {
+            Bytebuffer mmdxBuffer(mmdx.filenames, mmdx.size);
+            Bytebuffer mmidBuffer(mmid.offsets, mmid.size);
+
+            // Insert M2 placement data into Chunk
+            for (Mddf::MddfData& mddfData : mddf.data)
+            {
+                Placement& complexModelPlacement = chunk->complexModelPlacements.emplace_back();
+
+                u32 offsetIntoMMDX;
+                if (!mmidBuffer.Get<u32>(offsetIntoMMDX, mddfData.nameId * sizeof(u32)))
+                {
+                    NC_LOG_FATAL("Could not get MMDX Offset from MMID");
+                }
+
+                std::string m2Name;
+                mmdxBuffer.GetStringByOffset(m2Name, offsetIntoMMDX);
+
+                if (m2Name.empty())
+                {
+                    NC_LOG_FATAL("Could not get M2 Name from MMDX");
+                }
+
+                fs::path cmodelPath = m2Name;
+                cmodelPath.replace_extension(".cmodel");
+
+                complexModelPlacement.nameID = stringTable.AddString(cmodelPath.string());
+                complexModelPlacement.position = mddfData.position;
+                complexModelPlacement.rotation = mddfData.rotation;
+                complexModelPlacement.scale = mddfData.scale;
             }
         }
 
@@ -203,7 +238,15 @@ namespace Adt
 
         if (numMapObjectPlacements > 0)
         {
-            output.write(reinterpret_cast<char const*>(chunk->mapObjectPlacements.data()), sizeof(MapObjectPlacement) * numMapObjectPlacements); // Write map object placements
+            output.write(reinterpret_cast<char const*>(chunk->mapObjectPlacements.data()), sizeof(Placement) * numMapObjectPlacements); // Write map object placements
+        }
+
+        u32 numComplexModelPlacements = static_cast<u32>(chunk->complexModelPlacements.size());
+        output.write(reinterpret_cast<char const*>(&numComplexModelPlacements), sizeof(u32)); // Write number of complex model placements
+
+        if (numComplexModelPlacements > 0)
+        {
+            output.write(reinterpret_cast<char const*>(chunk->complexModelPlacements.data()), sizeof(Placement) * numComplexModelPlacements); // Write map object placements
         }
 
         // Water (This data is prepared in the Mh2o::Read, because we need direct access to the buffer in order to convert the data)

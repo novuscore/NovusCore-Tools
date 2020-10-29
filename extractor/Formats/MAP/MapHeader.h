@@ -16,7 +16,7 @@ struct MapHeader
     MapDetailFlag flags;
 
     std::string mapObjectName = "";
-    MapObjectPlacement mapObjectPlacement;
+    Placement mapObjectPlacement;
 
     void SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath)
     {

@@ -218,10 +218,9 @@ void ComplexModel::ResolveShaderID1(ComplexTextureUnit& textureUnit)
         u16 textureUnitValue = textureUnitLookupTable[textureUnit.textureUnitLookupId];
 
         bool envMapped = textureUnitValue == std::numeric_limits<u16>().max();
-        bool isOpaque = textureUnitValue == 0;
-        bool isTransparent = textureUnitValue == 1;
+        bool isTransparent = material.blendingMode != 0;
 
-        if (!isOpaque)
+        if (isTransparent)
         {
             shaderID = 0x01;
 
@@ -231,7 +230,7 @@ void ComplexModel::ResolveShaderID1(ComplexTextureUnit& textureUnit)
             shaderID *= 0x10;
         }
 
-        if (isTransparent)
+        if (textureUnitValue == 1)
         {
             shaderID |= 0x4000;
         }

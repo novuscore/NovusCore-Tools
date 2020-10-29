@@ -61,7 +61,7 @@ struct AlphaMap
     u8 alphaMap[4096] = { 0 }; // 4096 pixels per alpha map
 };
 
-struct MapObjectPlacement
+struct Placement
 {
     u32 nameID;
     vec3 position;
@@ -129,7 +129,7 @@ struct LiquidVertexFormat_Height_UV_Depth
 struct MapChunkHeader
 {
     u32 token = MAP_CHUNK_TOKEN;
-    u32 version = 4;
+    u32 version = 5;
 };
 
 struct Chunk
@@ -139,7 +139,8 @@ struct Chunk
     HeightHeader heightHeader;
     HeightBox heightBox;
 
-    std::vector<MapObjectPlacement> mapObjectPlacements;
+    std::vector<Placement> mapObjectPlacements;
+    std::vector<Placement> complexModelPlacements;
 
     Cell cells[MAP_CELLS_PER_CHUNK];
     u8 alphaMapData[MAP_CHUNK_ALPHAMAP_BYTE_SIZE];
