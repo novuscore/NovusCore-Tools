@@ -144,7 +144,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
                         std::filesystem::path adtSubPath = internalName;
 
                         // Extract data we want into our own format and then write adt to disk
-                        adt.SaveToDisk(globalData, adtSubPath / (fileName + ".nchunk"));
+                        adt.SaveToDisk(globalData, adtSubPath / (fileName + ".nchunk"), wdt);
                     });
                 }
 

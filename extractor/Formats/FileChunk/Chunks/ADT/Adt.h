@@ -29,6 +29,6 @@ namespace Adt
         Mtxf mtxf;
         std::vector<MapCellInfo> cells;
 
-        void SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath);
+        void SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath, const Wdt::Wdt& wdt);
     };
 }

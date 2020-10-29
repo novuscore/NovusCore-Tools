@@ -8,6 +8,7 @@
 #include "../../../../Utils/JobBatch.h"
 #include "../../../BLP/BlpConvert.h"
 #include "../../../MAP/Chunk.h"
+#include "../WDT/Wdt.h"
 
 #include "../../../../Extractors/TextureExtractor.h"
 
@@ -16,7 +17,7 @@
 
 namespace Adt
 {
-    void Adt::SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath)
+    void Adt::SaveToDisk(std::shared_ptr<GlobalData>& globalData, const fs::path& filePath, const Wdt::Wdt& wdt)
     {
         ZoneScoped;
 
@@ -85,6 +86,12 @@ namespace Adt
             const u32 numLayers = cells[i].mcnk.numLayers;
             const u32 basePixelDestination = (i * CELL_ALPHAMAP_SIZE * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS);
 
+            // 0 = r, 1 = g, 2 = b, 3 = a
+            u32 swizzleMap[MAP_CHUNK_ALPHAMAP_NUM_CHANNELS] =
+            {
+                2,1,0,3
+            };
+
             for (u32 j = 0; j < numLayers; j++)
             {
                 // Get the texture ID from the MCYL, this should be an index pointing into our textureNames vector
@@ -110,11 +117,6 @@ namespace Adt
                 // If the layer has alpha data, add it to our per-chunk alphamap
                 if (j > 0)
                 {
-                    // 0 = r, 1 = g, 2 = b, 3 = a
-                    u32 swizzleMap[4] =
-                    {
-                        2,1,0,3
-                    };
                     u32 channel = swizzleMap[j - 1];
 
                     for (u32 pixel = 0; pixel < CELL_ALPHAMAP_SIZE; pixel++)
@@ -122,6 +124,40 @@ namespace Adt
                         u32 dst = basePixelDestination + (pixel * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS) + channel;
                         chunk->alphaMapData[dst] = cells[i].mcal.data[j - 1].alphaMap[pixel];
                     }
+                }
+            }
+
+            // Convert Old Alpha to new Alpha
+            if (!wdt.hasBigAlpha && numLayers > 1)
+            {
+                const vec4 alphaR = vec4(1, 0, 0, 0);
+                const vec4 alphaG = vec4(0, 1, 0, 0);
+                const vec4 alphaB = vec4(0, 0, 1, 0);
+                const vec4 alphaA = vec4(0, 0, 0, 1);
+
+                for (u32 pixel = 0; pixel < CELL_ALPHAMAP_SIZE; pixel++)
+                {
+                    u32 redDst = basePixelDestination + (pixel * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS) + swizzleMap[0];
+                    u32 greenDst = basePixelDestination + (pixel * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS) + swizzleMap[1];
+                    u32 blueDst = basePixelDestination + (pixel * MAP_CHUNK_ALPHAMAP_NUM_CHANNELS) + swizzleMap[2];
+
+                    f32 redPixelFloat = chunk->alphaMapData[redDst] / 255.f;
+                    f32 greenPixelFloat = chunk->alphaMapData[greenDst] / 255.f;
+                    f32 bluePixelFloat = chunk->alphaMapData[blueDst] / 255.f;
+
+                    vec4 accumulated = alphaR;
+                    accumulated = glm::mix(accumulated, alphaG, redPixelFloat);
+                    accumulated = glm::mix(accumulated, alphaB, greenPixelFloat);
+                    accumulated = glm::mix(accumulated, alphaA, bluePixelFloat);
+                    accumulated = glm::clamp(accumulated, 0.f, 1.f);
+
+                    u8 redPixelByte = static_cast<u8>(glm::round(accumulated.g * 255));
+                    u8 greenPixelByte = static_cast<u8>(glm::round(accumulated.b * 255));
+                    u8 bluePixelByte = static_cast<u8>(glm::round(accumulated.a * 255));
+
+                    chunk->alphaMapData[redDst] = redPixelByte;
+                    chunk->alphaMapData[greenDst] = greenPixelByte;
+                    chunk->alphaMapData[blueDst] = bluePixelByte;
                 }
             }
 
