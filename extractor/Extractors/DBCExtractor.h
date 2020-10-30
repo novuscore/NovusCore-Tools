@@ -18,6 +18,7 @@ public:
     void ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner);
 
     const std::vector<DBC::Map>& GetMaps() { return _maps; }
+    const std::vector<DBC::AreaTable>& GetAreas() { return _areas; }
     const std::vector<DBC::LiquidType>& GetLiquidTypes() { return _liquidTypes; }
     const std::vector<DBC::LiquidMaterial>& GetLiquidMaterials() { return _liquidMaterials; }
     const std::vector<DBC::CreatureModelData>& GetCreatureModelDatas() { return _creatureModelDatas; }
@@ -32,6 +33,7 @@ private:
     u32 GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 field);
 
     bool LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
+    bool LoadAreaTable(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
     bool LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
     bool LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
     bool LoadCreatureModelData(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader);
@@ -42,6 +44,7 @@ private:
     void CreateDBCStringTableFile(std::shared_ptr<GlobalData> globalData);
 private:
     std::vector<DBC::Map> _maps;
+    std::vector<DBC::AreaTable> _areas;
     std::vector<DBC::LiquidType> _liquidTypes;
     std::vector<DBC::LiquidMaterial> _liquidMaterials;
     std::vector<DBC::CreatureModelData> _creatureModelDatas;

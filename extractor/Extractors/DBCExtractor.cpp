@@ -24,6 +24,7 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     }
 
     LoadMap(globalData, mpqLoader, dbcReader);
+    LoadAreaTable(globalData, mpqLoader, dbcReader);
     LoadLiquidTypes(globalData, mpqLoader, dbcReader);
     LoadLiquidMaterials(globalData, mpqLoader, dbcReader);
     LoadCreatureModelData(globalData, mpqLoader, dbcReader);
@@ -98,13 +99,13 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
         auto row = dbcReader->GetRow(i);
 
         DBC::Map& map = _maps.emplace_back();
-        map.Id = row.GetUInt32(0);
-        map.InternalName = GetStringIndexFromField(row, 1);
-        map.InstanceType = row.GetUInt32(2);
-        map.Flags = row.GetUInt32(3);
-        map.Name = GetLocaleStringIndexFromField(row, 5);
-        map.Expansion = row.GetUInt32(63);
-        map.MaxPlayers = row.GetUInt32(65);
+        map.id = row.GetUInt32(0);
+        map.internalName = GetStringIndexFromField(row, 1);
+        map.instanceType = row.GetUInt32(2);
+        map.flags = row.GetUInt32(3);
+        map.name = GetLocaleStringIndexFromField(row, 5);
+        map.expansion = row.GetUInt32(63);
+        map.maxPlayers = row.GetUInt32(65);
     }
 
     fs::path outputPath = globalData->ndbcPath / "Maps.ndbc";
@@ -119,6 +120,58 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
     output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
     output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of maps
     output.write(reinterpret_cast<char const*>(_maps.data()), rows * sizeof(DBC::Map)); // Write maps
+
+    output.close();
+
+    return true;
+}
+bool DBCExtractor::LoadAreaTable(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\AreaTable.dbc");
+    if (!file)
+    {
+        NC_LOG_ERROR("Failed to load AreaTable.dbc");
+        return false;
+    }
+
+    NC_LOG_MESSAGE("Loading AreaTable.dbc...");
+    if (dbcReader->Load(file) != 0)
+        return false;
+
+    u32 rows = dbcReader->GetNumRows();
+    if (rows == 0)
+        return false;
+
+    _areas.reserve(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        DBC::AreaTable& area = _areas.emplace_back();
+        area.id = row.GetUInt32(0);
+        area.mapId = row.GetUInt32(1);
+        area.parentId = row.GetUInt32(2);
+        area.areaBit = row.GetUInt32(3);
+
+        u32 flags = row.GetUInt32(4);
+        area.flags = *reinterpret_cast<DBC::AreaTableFlag*>(&flags);
+        area.areaLevel = row.GetUInt32(10);
+        area.name = GetLocaleStringIndexFromField(row, 11); 
+    }
+
+    fs::path outputPath = globalData->ndbcPath / "AreaTable.ndbc";
+    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
+    if (!output)
+    {
+        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
+        return false;
+    }
+
+    DBC::NDBCHeader header;
+    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
+    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of areas
+    output.write(reinterpret_cast<char const*>(_areas.data()), rows * sizeof(DBC::AreaTable)); // Write areas
 
     output.close();
 
@@ -385,9 +438,9 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
         auto row = dbcReader->GetRow(i);
 
         DBC::EmotesText& emoteText = _emotesTexts.emplace_back();
-        emoteText.Id = row.GetUInt32(0);
-        emoteText.InternalName = GetStringIndexFromField(row, 1);
-        emoteText.AnimationId = row.GetUInt32(2);
+        emoteText.id = row.GetUInt32(0);
+        emoteText.internalName = GetStringIndexFromField(row, 1);
+        emoteText.animationId = row.GetUInt32(2);
     }
 
     fs::path outputPath = globalData->ndbcPath / "EmotesText.ndbc";

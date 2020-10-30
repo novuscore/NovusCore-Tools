@@ -37,13 +37,59 @@ namespace DBC
 
     struct Map
     {
-        u32 Id;
-        u32 Name;
-        u32 InternalName;
-        u32 InstanceType;
-        u32 Flags;
-        u32 Expansion;
-        u32 MaxPlayers;
+        u32 id;
+        u32 name;
+        u32 internalName;
+        u32 instanceType;
+        u32 flags;
+        u32 expansion;
+        u32 maxPlayers;
+    };
+
+    // Some of these flags were named by Nix based on WowDev.Wiki and marked with "Investigate" comment
+    struct AreaTableFlag
+    {
+        u32 enableBreathParticles : 1;
+        u32 breathParticlesOverrideParent : 1;
+        u32 unk_0x4 : 1;
+        u32 slaveCaptial : 1; // Investigate this flag
+        u32 unk_0x10 : 1;
+        u32 slaveCaptial2 : 1; // Investigate this flag
+        u32 duelingEnabled : 1;
+        u32 isArena : 1;
+        u32 isMainCaptial : 1;
+        u32 linkedChatArea : 1;
+        u32 isOutland : 1; // Investigate this flag
+        u32 isSanctuary : 1;
+        u32 needFlyingToReach : 1;
+        u32 unused_0x2000 : 1;
+        u32 isNorthrend : 1; // Investigate this flag
+        u32 isSubZonePVP : 1; // Investigate this flag
+        u32 isInstancedArena : 1;
+        u32 unused_0x20000 : 1;
+        u32 isContestedArea : 1;
+        u32 isDKStartingArea : 1; // Investigate this flag
+        u32 isStarterZone : 1; // Investigate this flag (Supposedly enabled for areas where area level is under 15
+        u32 isTown : 1;
+        u32 unk_0x400000 : 1;
+        u32 unk_0x800000 : 1;
+        u32 unk_0x1000000 : 1; // Investigate this flag (Related to Wintergrasp)
+        u32 isInside : 1; // Investigate this flag
+        u32 isOutside : 1; // Investigate this flag
+        u32 unk_0x8000000 : 1; // Investigate this flag (Related to Wintergrasp)
+        u32 disallowFlying : 1;
+        u32 useParentForWorldDefenseVisibilityCheck : 1;
+    };
+
+    struct AreaTable
+    {
+        u32 id;
+        u32 mapId;
+        u32 parentId; // Sub Areas refer to their parent areas
+        u32 areaBit;
+        AreaTableFlag flags;
+        u32 areaLevel;
+        u32 name;
     };
 
     struct LiquidType
@@ -157,9 +203,9 @@ namespace DBC
 
     struct EmotesText
     {
-        u32 Id;
-        u32 InternalName;
-        u32 AnimationId;
+        u32 id;
+        u32 internalName;
+        u32 animationId;
     };
 
     struct Spell
