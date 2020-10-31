@@ -2,6 +2,7 @@
 #include "M2.h"
 #include "../../GlobalData.h"
 #include "../../Utils/ServiceLocator.h"
+#include "../../Utils/NormalCompression.h"
 
 #include <fstream>
 #include <tracy/Tracy.hpp>
@@ -20,8 +21,20 @@ void ComplexModel::ReadFromM2(M2File& file)
         u32 numVertices = m2.vertices.size;
         u32 verticesOffset = m2.vertices.offset;
 
-        vertices.resize(numVertices);
-        memcpy(vertices.data(), &file.m2Buffer->GetDataPointer()[verticesOffset], numVertices * sizeof(ComplexVertex));
+        m2Vertices.resize(numVertices);
+        memcpy(m2Vertices.data(), &file.m2Buffer->GetDataPointer()[verticesOffset], numVertices * sizeof(M2Vertex));
+
+        for (M2Vertex& m2Vertex : m2Vertices)
+        {
+            ComplexVertex& vertex = vertices.emplace_back();
+            vertex.position = m2Vertex.position;
+            vertex.uvCords[0] = m2Vertex.uvCords[0];
+            vertex.uvCords[1] = m2Vertex.uvCords[1];
+
+            vec2 octNormal = Utils::OctNormalEncode(m2Vertex.normal);
+            vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
+            vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
+        }
     }
 
     // Read Textures
