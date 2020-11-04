@@ -25,14 +25,14 @@
 #include <NovusTypes.h>
 #include <string>
 
-namespace DBC
+namespace NDBC
 {
     constexpr i32 NDBC_TOKEN = 1313096259;
 
     struct NDBCHeader
     {
         u32 token = NDBC_TOKEN;
-        u32 version = 1;
+        u32 version = 2;
     };
 
     struct Map
@@ -126,24 +126,97 @@ namespace DBC
         u32 mapId; // This is a reference to Map.dbc
         vec3 position; // X, Y and Z position for the center of the Light(Skybox) Sphere.
         vec2 fallOff; // X == Start (Inner Radius), Y == End (Outer Radius)
-        i32 paramsClear; // Used in clear weather
-        i32 paramsClearInWater; // Used in clear weather while being underwater.
-        i32 paramsStorm; // Used in storm like weather.
-        i32 paramsStormInWater; // Used in storm like weather while being underwater.
-        i32 paramsDeath; // Appears to be hardcoded in the client, but maybe not.
-
+        i32 paramClearId; // Used in clear weather
+        i32 paramClearInWaterId; // Used in clear weather while being underwater.
+        i32 paramStormId; // Used in storm like weather.
+        i32 paramStormInWaterId; // Used in storm like weather while being underwater.
+        i32 paramDeathId; // Appears to be hardcoded in the client, but maybe not.
 
         // These are only used in WoTLK
-        i32 paramUnk1;
-        i32 paramUnk2;
-        i32 paramUnk3;
+        i32 paramUnk1Id;
+        i32 paramUnk2Id;
+        i32 paramUnk3Id;
+    };
+
+    struct LightParams
+    {
+        u32 id;
+        u32 highlightSky;
+        u32 lightSkyboxId;
+        u32 cloudTypeId;
+        f32 glow;
+        f32 waterShallowAlpha;
+        f32 waterDeepAlpha;
+        f32 oceanShallowAlpha;
+        f32 oceanDeepAlpha;
+        u32 flags;
+    };
+
+    /*
+        Each LightParams have 18 rows in LightIntBand, to get the appropriate row id do the following (LightParams->id * 18)
+        The rows correspond to these values
+        
+        Number 	Description
+        0 		Global ambient light
+        1 		Global diffuse light
+        2 		Sky color 0 (top)
+        3 		Sky color 1 (middle)
+        4 		Sky color 2 (middle to horizon)
+        5 		Sky color 3 (above horizon)
+        6 		Sky color 4 (horizon)
+        7 		Fog color / background mountains color. Affects color of weather effects as well.
+        8 	 	?
+        9 		Sun color + sun halo color, specular lighting, sun rays
+        10 		Sun larger halo color  //  cloud color a1 (base)
+        11 	 	? // cloud color B (edge)
+        12 		Cloud color  // cloud color a2 (secondary base)
+        13 	 	?
+        14 	 	Ocean color [light] // shallow ocean water
+        15 		Ocean color [dark]  // deep ocean water
+        16 		River color [light] // shallow river water
+        17 	 	River color [dark]  // deep river water
+    */
+    struct LightIntBand
+    {
+        u32 id;
+        u32 entries; // Defines how many of the columns are used in this row (0..16)
+
+        // Time Values store a value between 0..2880 this gives half a minute precision throughout a 24 hour period.
+        // Each number (1..2..3) represents 30 seconds
+        u32 timeValues[16];
+
+        // Stores the color value for the time value (BGRX)
+        u32 colorValues[16];
+    };
+
+    /*
+        Each LightParams have 6 rows in LightFloatBand, to get the appropriate row id do the following (LightParams->id * 6)
+        The rows correspond to these values
+
+        Number      Description
+        0           Fog distance multiplied by 36 - distance at which everything will be hidden by the fog
+        1           Fog multiplier - fog distance * fog multiplier = fog start distance. 0-0,999...
+        2           Celestial Glow Through - the brightness of the sun and moon as it shows through cloud cover. Note that this effect only appears when the Sun or Moon is being obscured by clouds. 0-1
+        3           Cloud Density - Controls the density of cloud cover in the area. Value range is 0.0 to 1.0.
+        4           ?
+        5           ?
+    */
+    struct LightFloatBand
+    {
+        u32 id;
+        u32 entries; // Defines how many of the columns are used in this row (0..16)
+
+        // Time Values store a value between 0..2880 this gives half a minute precision throughout a 24 hour period.
+        // Each number (1..2..3) represents 30 seconds
+        u32 timeValues[16];
+        f32 values[16];
     };
 
     struct LightSkybox
     {
         u32 id;
         u32 modelPath;
-        u32 flags;
+        u32 flags; //  0x1: animation syncs with time of day (uses animation 0, time of day is just in percentage). 0x2: render stars, sun and moons and clouds as well. 0x4: do procedural fog
     };
 
     struct CreatureDisplayInfo

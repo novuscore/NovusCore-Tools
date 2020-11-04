@@ -25,23 +25,46 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 
     LoadMap(globalData, mpqLoader, dbcReader);
     LoadAreaTable(globalData, mpqLoader, dbcReader);
+    LoadLight(globalData, mpqLoader, dbcReader);
+    LoadLightParams(globalData, mpqLoader, dbcReader);
+    LoadLightIntBand(globalData, mpqLoader, dbcReader);
+    LoadLightFloatBand(globalData, mpqLoader, dbcReader);
+    LoadLightSkybox(globalData, mpqLoader, dbcReader);
     LoadLiquidTypes(globalData, mpqLoader, dbcReader);
     LoadLiquidMaterials(globalData, mpqLoader, dbcReader);
     LoadCreatureModelData(globalData, mpqLoader, dbcReader);
     LoadCreatureDisplayInfo(globalData, mpqLoader, dbcReader);
     LoadEmotesText(globalData, mpqLoader, dbcReader);
-    LoadSpell(globalData, mpqLoader, dbcReader);
-
-    CreateDBCStringTableFile(globalData);
+    //LoadSpell(globalData, mpqLoader, dbcReader); // Enable this when we need it, currently slowing down debugging
 }
 
-constexpr u32 InvalidNameIndex = std::numeric_limits<u32>().max();
-u32 DBCExtractor::GetStringIndexFromField(DBCReader::DBCRow& row, u32 field)
+bool DBCExtractor::LoadDBCFile(std::string_view path, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader, u32& numRows)
+{
+    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile(path);
+    if (!file)
+    {
+        NC_LOG_ERROR("Failed to load %s", path.data());
+        return false;
+    }
+
+    NC_LOG_MESSAGE("Loading %s...", path.data());
+
+    if (dbcReader->Load(file) != 0)
+        return false;
+
+    numRows = dbcReader->GetNumRows();
+    if (numRows == 0)
+        return false;
+
+    return true;
+}
+
+u32 DBCExtractor::GetStringIndexFromField(StringTable& stringTable, DBCReader::DBCRow& row, u32 field)
 {
     std::string value = row.GetString(field);
 
     if (value.length() == 0)
-        return InvalidNameIndex;
+        return NDBC_INVALID_STRING_INDEX;
 
     if (StringUtils::EndsWith(value, ".mdx"))
         value = value.substr(0, value.length() - 4) + ".cmodel";
@@ -49,10 +72,9 @@ u32 DBCExtractor::GetStringIndexFromField(DBCReader::DBCRow& row, u32 field)
     if (StringUtils::EndsWith(value, ".m2"))
         value = value.substr(0, value.length() - 3) + ".cmodel";
 
-    return _dbcStringTable.AddString(value);
+    return stringTable.AddString(value);
 }
-
-u32 DBCExtractor::GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 field)
+u32 DBCExtractor::GetLocaleStringIndexFromField(StringTable& stringTable, DBCReader::DBCRow& row, u32 field)
 {
     std::string value = "";
     for (u8 i = 0; i < 16; i++)
@@ -64,7 +86,7 @@ u32 DBCExtractor::GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 fiel
     }
 
     if (value.length() == 0)
-        return InvalidNameIndex;
+        return NDBC_INVALID_STRING_INDEX;
 
     if (StringUtils::EndsWith(value, ".mdx"))
         value = value.substr(0, value.length() - 4) + ".cmodel";
@@ -72,137 +94,227 @@ u32 DBCExtractor::GetLocaleStringIndexFromField(DBCReader::DBCRow& row, u32 fiel
     if (StringUtils::EndsWith(value, ".m2"))
         value = value.substr(0, value.length() - 3) + ".cmodel";
 
-    return _dbcStringTable.AddString(value);
+    return stringTable.AddString(value);
 }
 
 bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\Map.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load Map.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading Map.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\Map.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _maps.reserve(rows);
+    StringTable stringTable(static_cast<u64>(rows) * 2);
+    _maps.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::Map& map = _maps.emplace_back();
+        NDBC::Map& map = _maps[i];
         map.id = row.GetUInt32(0);
-        map.internalName = GetStringIndexFromField(row, 1);
+        map.internalName = GetStringIndexFromField(stringTable, row, 1);
         map.instanceType = row.GetUInt32(2);
         map.flags = row.GetUInt32(3);
-        map.name = GetLocaleStringIndexFromField(row, 5);
+        map.name = GetLocaleStringIndexFromField(stringTable, row, 5);
         map.expansion = row.GetUInt32(63);
         map.maxPlayers = row.GetUInt32(65);
     }
 
-    fs::path outputPath = globalData->ndbcPath / "Maps.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of maps
-    output.write(reinterpret_cast<char const*>(_maps.data()), rows * sizeof(DBC::Map)); // Write maps
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "Maps.ndbc", _maps, stringTable);
 }
 bool DBCExtractor::LoadAreaTable(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\AreaTable.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load AreaTable.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading AreaTable.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\AreaTable.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _areas.reserve(rows);
+    StringTable stringTable(rows);
+    _areas.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::AreaTable& area = _areas.emplace_back();
+        NDBC::AreaTable& area = _areas[i];
         area.id = row.GetUInt32(0);
         area.mapId = row.GetUInt32(1);
         area.parentId = row.GetUInt32(2);
         area.areaBit = row.GetUInt32(3);
 
         u32 flags = row.GetUInt32(4);
-        area.flags = *reinterpret_cast<DBC::AreaTableFlag*>(&flags);
+        area.flags = *reinterpret_cast<NDBC::AreaTableFlag*>(&flags);
         area.areaLevel = row.GetUInt32(10);
-        area.name = GetLocaleStringIndexFromField(row, 11); 
+        area.name = GetLocaleStringIndexFromField(stringTable, row, 11); 
     }
 
-    fs::path outputPath = globalData->ndbcPath / "AreaTable.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of areas
-    output.write(reinterpret_cast<char const*>(_areas.data()), rows * sizeof(DBC::AreaTable)); // Write areas
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "AreaTable.ndbc", _areas, stringTable);
 }
-bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+bool DBCExtractor::LoadLight(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\LiquidType.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load LiquidType.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading LiquidType.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\Light.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _liquidTypes.reserve(rows);
+    StringTable stringTable;
+    _lights.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::LiquidType& liquidType = _liquidTypes.emplace_back();
+        NDBC::Light& light = _lights[i];
+        light.id = row.GetUInt32(0);
+        light.mapId = row.GetUInt32(1);
+
+        /* These values are stored in inches, convert directly to yards
+           We also swizzle the position directly into our coordinate system
+        
+            X = Z;
+            Y = Y;
+            Z = X;
+        */
+        light.position.x = row.GetFloat(4) / 36.0f;
+        light.position.y = row.GetFloat(3) / 36.0f;
+        light.position.z = row.GetFloat(2) / 36.0f;
+        light.fallOff.x = row.GetFloat(5) / 36.0f;
+        light.fallOff.y = row.GetFloat(6) / 36.0f;
+
+        light.paramClearId = row.GetUInt32(7);
+        light.paramClearInWaterId = row.GetUInt32(8);
+        light.paramStormId = row.GetUInt32(9);
+        light.paramStormInWaterId = row.GetUInt32(10);
+        light.paramDeathId = row.GetUInt32(11);
+
+        light.paramUnk1Id = row.GetUInt32(12);
+        light.paramUnk2Id = row.GetUInt32(13);
+        light.paramUnk3Id = row.GetUInt32(14);
+    }
+
+    return SaveDBCFile(globalData, "Light.ndbc", _lights, stringTable);
+}
+bool DBCExtractor::LoadLightParams(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LightParams.dbc", mpqLoader, dbcReader, rows))
+        return false;
+
+    StringTable stringTable;
+    _lightParams.resize(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        NDBC::LightParams& lightParams = _lightParams[i];
+        lightParams.id = row.GetUInt32(0);
+        lightParams.highlightSky = row.GetUInt32(1);
+        lightParams.lightSkyboxId = row.GetUInt32(2);
+        lightParams.cloudTypeId = row.GetUInt32(3);
+        lightParams.glow = row.GetFloat(4);
+        lightParams.waterShallowAlpha = row.GetFloat(5);
+        lightParams.waterDeepAlpha = row.GetFloat(6);
+        lightParams.oceanShallowAlpha = row.GetFloat(7);
+        lightParams.oceanDeepAlpha = row.GetFloat(8);
+        lightParams.flags = row.GetUInt32(9);
+    }
+
+    return SaveDBCFile(globalData, "LightParams.ndbc", _lightParams, stringTable);
+}
+bool DBCExtractor::LoadLightIntBand(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LightIntBand.dbc", mpqLoader, dbcReader, rows))
+        return false;
+
+    StringTable stringTable;
+    _lightIntBands.resize(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        NDBC::LightIntBand& lightIntBand = _lightIntBands[i];
+        lightIntBand.id = row.GetUInt32(0);
+        lightIntBand.entries = row.GetUInt32(1);
+
+        u32 timeValueBaseOffset = 2; // Time Values start from column 2
+        u32 colorValueBaseOffset = 18; // Color Values start from column 18
+        for (u32 i = 0; i < 16; i++)
+        {
+            // For the time values we multiply by 30 to get per second values (Blizzard stores these as 1 value per 30 seconds)
+            lightIntBand.timeValues[i] = row.GetUInt32(timeValueBaseOffset + i) * 30;
+            lightIntBand.colorValues[i] = row.GetUInt32(colorValueBaseOffset + i);
+        }
+    }
+
+    return SaveDBCFile(globalData, "LightIntBand.ndbc", _lightIntBands, stringTable);
+}
+bool DBCExtractor::LoadLightFloatBand(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LightFloatBand.dbc", mpqLoader, dbcReader, rows))
+        return false;
+
+    StringTable stringTable;
+    _lightFloatBands.resize(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        NDBC::LightFloatBand& lightFloatBand = _lightFloatBands[i];
+        lightFloatBand.id = row.GetUInt32(0);
+        lightFloatBand.entries = row.GetUInt32(1);
+
+        u32 timeValueBaseOffset = 2; // Time Values start from column 2
+        u32 valuesBaseOffset = 18; // Color Values start from column 18
+        for (u32 i = 0; i < 16; i++)
+        {
+            // For the time values we multiply by 30 to get per second values (Blizzard stores these as 1 value per 30 seconds)
+            lightFloatBand.timeValues[i] = row.GetUInt32(timeValueBaseOffset + i) * 30;
+            lightFloatBand.values[i] = row.GetFloat(valuesBaseOffset + i);
+        }
+    }
+
+    return SaveDBCFile(globalData, "LightFloatBand.ndbc", _lightFloatBands, stringTable);
+}
+bool DBCExtractor::LoadLightSkybox(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LightSkybox.dbc", mpqLoader, dbcReader, rows))
+        return false;
+
+    StringTable stringTable(rows);
+    _lightSkyboxes.resize(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        NDBC::LightSkybox& lightSkybox = _lightSkyboxes[i];
+        lightSkybox.id = row.GetUInt32(0);
+        lightSkybox.modelPath = GetStringIndexFromField(stringTable, row, 1);
+        lightSkybox.flags = row.GetUInt32(2);
+    }
+
+    return SaveDBCFile(globalData, "LightSkybox.ndbc", _lightSkyboxes, stringTable);
+}
+bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
+{
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LiquidType.dbc", mpqLoader, dbcReader, rows))
+        return false;
+
+    StringTable stringTable(rows);
+    _liquidTypes.resize(rows);
+
+    for (u32 i = 0; i < rows; i++)
+    {
+        auto row = dbcReader->GetRow(i);
+
+        NDBC::LiquidType& liquidType = _liquidTypes[i];
         liquidType.id = row.GetUInt32(0);
-        liquidType.name = GetStringIndexFromField(row, 1);
+        liquidType.name = GetStringIndexFromField(stringTable, row, 1);
         liquidType.flags = row.GetUInt32(2);
         liquidType.type = row.GetUInt32(3);
         liquidType.soundEntriesId = row.GetUInt32(4);
@@ -218,96 +330,46 @@ bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::
         liquidType.liquidMaterialId = row.GetUInt32(14);
     }
 
-    fs::path outputPath = globalData->ndbcPath / "LiquidTypes.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of liquid types
-    output.write(reinterpret_cast<char const*>(_liquidTypes.data()), rows * sizeof(DBC::LiquidType)); // Write liquid types
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "LiquidTypes.ndbc", _liquidTypes, stringTable);
 }
 bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\LiquidMaterial.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load LiquidMaterial.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading LiquidMaterial.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\LiquidMaterial.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _liquidMaterials.reserve(rows);
+    StringTable stringTable;
+    _liquidMaterials.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::LiquidMaterial& liquidMaterial = _liquidMaterials.emplace_back();
+        NDBC::LiquidMaterial& liquidMaterial = _liquidMaterials[i];
         liquidMaterial.id = row.GetUInt32(0);
         liquidMaterial.liquidVertexFormat = row.GetUInt32(1);
         liquidMaterial.flags = row.GetUInt32(2);
     }
 
-    fs::path outputPath = globalData->ndbcPath / "LiquidMaterials.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of liquid materials
-    output.write(reinterpret_cast<char const*>(_liquidMaterials.data()), rows * sizeof(DBC::LiquidMaterial)); // Write liquid materials
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "LiquidMaterials.ndbc", _liquidMaterials, stringTable);
 }
 bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\CreatureModelData.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load CreatureModelData.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading CreatureModelData.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\CreatureModelData.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _creatureModelDatas.reserve(rows);
+    StringTable stringTable(rows);
+    _creatureModelDatas.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
         {
-            DBC::CreatureModelData& creatureModelData = _creatureModelDatas.emplace_back();
+            NDBC::CreatureModelData& creatureModelData = _creatureModelDatas[i];
             creatureModelData.id = row.GetUInt32(0);
             creatureModelData.flags = row.GetUInt32(1);
-            creatureModelData.modelPath = GetStringIndexFromField(row, 2);
+            creatureModelData.modelPath = GetStringIndexFromField(stringTable, row, 2);
             creatureModelData.sizeClass = row.GetUInt32(3);
             creatureModelData.modelScale = row.GetFloat(4);
             creatureModelData.bloodLevelId = row.GetUInt32(5);
@@ -334,47 +396,22 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
         }
     }
 
-    fs::path outputPath = globalData->ndbcPath / "CreatureModelData.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCCreatureModelDatas
-    output.write(reinterpret_cast<char const*>(_creatureModelDatas.data()), rows * sizeof(DBC::CreatureModelData)); // Write DBCCreatureModelDatas
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "CreatureModelData.ndbc", _creatureModelDatas, stringTable);
 }
 bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\CreatureDisplayInfo.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load CreatureDisplayInfo.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading CreatureDisplayInfo.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\CreatureDisplayInfo.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _creatureDisplayInfos.reserve(rows);
+    StringTable stringTable(static_cast<u64>(rows) * 3);
+    _creatureDisplayInfos.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
         {
-            DBC::CreatureDisplayInfo& creatureDisplayInfo = _creatureDisplayInfos.emplace_back();
+            NDBC::CreatureDisplayInfo& creatureDisplayInfo = _creatureDisplayInfos[i];
             creatureDisplayInfo.id = row.GetUInt32(0);
             creatureDisplayInfo.modelId = row.GetUInt32(1);
             creatureDisplayInfo.soundId = row.GetUInt32(2);
@@ -382,10 +419,10 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
             creatureDisplayInfo.scale = row.GetFloat(4);
             creatureDisplayInfo.opacity = row.GetUInt32(5);
 
-            creatureDisplayInfo.texture1 = GetStringIndexFromField(row, 6);
-            creatureDisplayInfo.texture2 = GetStringIndexFromField(row, 7);
-            creatureDisplayInfo.texture3 = GetStringIndexFromField(row, 8);
-            creatureDisplayInfo.portraitTextureName = GetStringIndexFromField(row, 9);
+            creatureDisplayInfo.texture1 = GetStringIndexFromField(stringTable, row, 6);
+            creatureDisplayInfo.texture2 = GetStringIndexFromField(stringTable, row, 7);
+            creatureDisplayInfo.texture3 = GetStringIndexFromField(stringTable, row, 8);
+            creatureDisplayInfo.portraitTextureName = GetStringIndexFromField(stringTable, row, 9);
 
             creatureDisplayInfo.bloodLevelId = row.GetUInt32(10);
             creatureDisplayInfo.bloodId = row.GetUInt32(11);
@@ -396,94 +433,43 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
         }
     }
 
-    fs::path outputPath = globalData->ndbcPath / "CreatureDisplayInfo.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of CreatureDisplayInfos
-    output.write(reinterpret_cast<char const*>(_creatureDisplayInfos.data()), rows * sizeof(DBC::CreatureDisplayInfo)); // Write CreatureDisplayInfos
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "CreatureDisplayInfo.ndbc", _creatureDisplayInfos, stringTable);
 }
 bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\EmotesText.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load EmotesText.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading EmotesText.dbc...");
-
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\EmotesText.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _emotesTexts.reserve(rows);
+    StringTable stringTable(rows);
+    _emotesTexts.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::EmotesText& emoteText = _emotesTexts.emplace_back();
+        NDBC::EmotesText& emoteText = _emotesTexts[i];
         emoteText.id = row.GetUInt32(0);
-        emoteText.internalName = GetStringIndexFromField(row, 1);
+        emoteText.internalName = GetStringIndexFromField(stringTable, row, 1);
         emoteText.animationId = row.GetUInt32(2);
     }
 
-    fs::path outputPath = globalData->ndbcPath / "EmotesText.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCEmotesTexts
-    output.write(reinterpret_cast<char const*>(_emotesTexts.data()), rows * sizeof(DBC::EmotesText)); // Write DBCEmotesTexts
-
-    output.close();
-
-    return true;
+    return SaveDBCFile(globalData, "EmotesText.ndbc", _emotesTexts, stringTable);
 }
 bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
-    std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile("DBFilesClient\\Spell.dbc");
-    if (!file)
-    {
-        NC_LOG_ERROR("Failed to load Spell.dbc");
-        return false;
-    }
-
-    NC_LOG_MESSAGE("Loading Spell.dbc...");
-    if (dbcReader->Load(file) != 0)
+    u32 rows = 0;
+    if (!LoadDBCFile("DBFilesClient\\Spell.dbc", mpqLoader, dbcReader, rows))
         return false;
 
-    u32 rows = dbcReader->GetNumRows();
-    if (rows == 0)
-        return false;
-
-    _spells.reserve(rows);
+    StringTable stringTable(static_cast<u64>(rows) * 2);
+    _spells.resize(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
         auto row = dbcReader->GetRow(i);
 
-        DBC::Spell& spell = _spells.emplace_back();
+        NDBC::Spell& spell = _spells[i];
         spell.Id = row.GetUInt32(0);
         spell.SpellCategory = row.GetUInt32(1);
         spell.DispelType = row.GetUInt32(2);
@@ -618,8 +604,8 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
         spell.SpellIconID = row.GetUInt32(133);
         spell.ActiveIconID = row.GetUInt32(134);
         spell.SpellPriority = row.GetUInt32(135);
-        spell.SpellName = GetLocaleStringIndexFromField(row, 136);    // Skip 152 for SpellNameFlag
-        spell.SpellSubText = GetLocaleStringIndexFromField(row, 153); // Skip 169 for RankFlags
+        spell.SpellName = GetLocaleStringIndexFromField(stringTable, row, 136);    // Skip 152 for SpellNameFlag
+        spell.SpellSubText = GetLocaleStringIndexFromField(stringTable, row, 153); // Skip 169 for RankFlags
         // Skip 170 - 203 for unnecessary text stuff that we don't need
         spell.ManaCostPercentage = row.GetUInt32(204);
         spell.StartRecoveryCategory = row.GetUInt32(205);
@@ -653,40 +639,5 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
         spell.SpellDifficultyID = row.GetUInt32(233);
     }
 
-    fs::path outputPath = globalData->ndbcPath / "Spell.ndbc";
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        NC_LOG_ERROR("Failed to create dbc file. Check admin permissions");
-        return false;
-    }
-
-    DBC::NDBCHeader header;
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
-    output.write(reinterpret_cast<char const*>(&rows), sizeof(u32)); // Write number of DBCSpells
-    output.write(reinterpret_cast<char const*>(_spells.data()), rows * sizeof(DBC::Spell)); // Write DBCSpells
-
-    output.close();
-
-    return true;
-}
-
-void DBCExtractor::CreateDBCStringTableFile(std::shared_ptr<GlobalData> globalData)
-{
-    fs::path outputPath = globalData->ndbcPath / "NDBCStringTable.nst";
-
-    // Create a file
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        printf("Failed to create DBC StringTable file. Check admin permissions\n");
-        return;
-    }
-
-    // Serialize and write our StringTable to the file
-    std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<8388608>();
-    _dbcStringTable.Serialize(stringTableByteBuffer.get());
-    output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
-
-    output.close();
+    return SaveDBCFile(globalData, "Spell.ndbc", _spells, stringTable);
 }

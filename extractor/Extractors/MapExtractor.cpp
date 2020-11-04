@@ -34,7 +34,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
     std::filesystem::create_directories(mapAlphaMapPath);
 
-    const std::vector<DBC::Map>& maps = globalData->dbcExtractor->GetMaps();
+    const std::vector<NDBC::Map>& maps = globalData->dbcExtractor->GetMaps();
 
     size_t mapNames = mapConfig["MapNames"].size();
     size_t numMaps = mapNames ? mapNames : maps.size();
