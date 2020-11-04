@@ -120,7 +120,7 @@ bool DBCExtractor::LoadMap(std::shared_ptr<GlobalData> globalData, std::shared_p
         map.maxPlayers = row.GetUInt32(65);
     }
 
-    return SaveDBCFile(globalData, "Maps.ndbc", _maps, stringTable);
+    return SaveDBCFile(globalData, "Maps", _maps, stringTable);
 }
 bool DBCExtractor::LoadAreaTable(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -147,7 +147,7 @@ bool DBCExtractor::LoadAreaTable(std::shared_ptr<GlobalData> globalData, std::sh
         area.name = GetLocaleStringIndexFromField(stringTable, row, 11); 
     }
 
-    return SaveDBCFile(globalData, "AreaTable.ndbc", _areas, stringTable);
+    return SaveDBCFile(globalData, "AreaTable", _areas, stringTable);
 }
 bool DBCExtractor::LoadLight(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -190,7 +190,7 @@ bool DBCExtractor::LoadLight(std::shared_ptr<GlobalData> globalData, std::shared
         light.paramUnk3Id = row.GetUInt32(14);
     }
 
-    return SaveDBCFile(globalData, "Light.ndbc", _lights, stringTable);
+    return SaveDBCFile(globalData, "Light", _lights, stringTable);
 }
 bool DBCExtractor::LoadLightParams(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -218,7 +218,7 @@ bool DBCExtractor::LoadLightParams(std::shared_ptr<GlobalData> globalData, std::
         lightParams.flags = row.GetUInt32(9);
     }
 
-    return SaveDBCFile(globalData, "LightParams.ndbc", _lightParams, stringTable);
+    return SaveDBCFile(globalData, "LightParams", _lightParams, stringTable);
 }
 bool DBCExtractor::LoadLightIntBand(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -247,7 +247,7 @@ bool DBCExtractor::LoadLightIntBand(std::shared_ptr<GlobalData> globalData, std:
         }
     }
 
-    return SaveDBCFile(globalData, "LightIntBand.ndbc", _lightIntBands, stringTable);
+    return SaveDBCFile(globalData, "LightIntBand", _lightIntBands, stringTable);
 }
 bool DBCExtractor::LoadLightFloatBand(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -276,7 +276,7 @@ bool DBCExtractor::LoadLightFloatBand(std::shared_ptr<GlobalData> globalData, st
         }
     }
 
-    return SaveDBCFile(globalData, "LightFloatBand.ndbc", _lightFloatBands, stringTable);
+    return SaveDBCFile(globalData, "LightFloatBand", _lightFloatBands, stringTable);
 }
 bool DBCExtractor::LoadLightSkybox(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -297,7 +297,7 @@ bool DBCExtractor::LoadLightSkybox(std::shared_ptr<GlobalData> globalData, std::
         lightSkybox.flags = row.GetUInt32(2);
     }
 
-    return SaveDBCFile(globalData, "LightSkybox.ndbc", _lightSkyboxes, stringTable);
+    return SaveDBCFile(globalData, "LightSkybox", _lightSkyboxes, stringTable);
 }
 bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -330,7 +330,7 @@ bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::
         liquidType.liquidMaterialId = row.GetUInt32(14);
     }
 
-    return SaveDBCFile(globalData, "LiquidTypes.ndbc", _liquidTypes, stringTable);
+    return SaveDBCFile(globalData, "LiquidTypes", _liquidTypes, stringTable);
 }
 bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -351,7 +351,7 @@ bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, s
         liquidMaterial.flags = row.GetUInt32(2);
     }
 
-    return SaveDBCFile(globalData, "LiquidMaterials.ndbc", _liquidMaterials, stringTable);
+    return SaveDBCFile(globalData, "LiquidMaterials", _liquidMaterials, stringTable);
 }
 bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -396,7 +396,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
         }
     }
 
-    return SaveDBCFile(globalData, "CreatureModelData.ndbc", _creatureModelDatas, stringTable);
+    return SaveDBCFile(globalData, "CreatureModelData", _creatureModelDatas, stringTable);
 }
 bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -433,7 +433,7 @@ bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalDat
         }
     }
 
-    return SaveDBCFile(globalData, "CreatureDisplayInfo.ndbc", _creatureDisplayInfos, stringTable);
+    return SaveDBCFile(globalData, "CreatureDisplayInfo", _creatureDisplayInfos, stringTable);
 }
 bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -454,7 +454,7 @@ bool DBCExtractor::LoadEmotesText(std::shared_ptr<GlobalData> globalData, std::s
         emoteText.animationId = row.GetUInt32(2);
     }
 
-    return SaveDBCFile(globalData, "EmotesText.ndbc", _emotesTexts, stringTable);
+    return SaveDBCFile(globalData, "EmotesText", _emotesTexts, stringTable);
 }
 bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {
@@ -639,5 +639,5 @@ bool DBCExtractor::LoadSpell(std::shared_ptr<GlobalData> globalData, std::shared
         spell.SpellDifficultyID = row.GetUInt32(233);
     }
 
-    return SaveDBCFile(globalData, "Spell.ndbc", _spells, stringTable);
+    return SaveDBCFile(globalData, "Spell", _spells, stringTable);
 }

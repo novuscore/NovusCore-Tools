@@ -51,7 +51,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     for (size_t i = 0; i < numMaps; i++)
     {
         ZoneScoped;
-        const std::string& internalName = mapNames ? mapConfig["MapNames"][i] : globalData->dbcExtractor->GetStringTable().GetString(maps[i].internalName);
+        const std::string& internalName = mapNames ? mapConfig["MapNames"][i] : globalData->dbcExtractor->GetStringTableFromNDBC("Maps"_h).GetString(maps[i].internalName);
 
         // Only process map if a WDT file is found
         {

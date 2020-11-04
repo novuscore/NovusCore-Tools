@@ -33,15 +33,14 @@ public:
     const std::vector<NDBC::EmotesText>& GetEmotesTexts() { return _emotesTexts; }
     const std::vector<NDBC::Spell>& GetSpells() { return _spells; }
 
-    StringTable& GetStringTable() { return _dbcStringTable; }
-
+    StringTable& GetStringTableFromNDBC(u32 nameHashWithoutExtension) { return _dbcNameToStringTable[nameHashWithoutExtension]; }
 private:
     bool LoadDBCFile(std::string_view path, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader, u32& numRows);
 
     template <typename T>
     bool SaveDBCFile(std::shared_ptr<GlobalData> globalData, fs::path name, std::vector<T>& data, StringTable& stringTable)
     {
-        fs::path outputPath = globalData->ndbcPath / name;
+        fs::path outputPath = (globalData->ndbcPath / name).replace_extension("ndbc");
         std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
         if (!output)
         {
@@ -71,6 +70,10 @@ private:
 
         output.close();
 
+        std::string dbcName = name.string();
+        u32 dbcNameHash = StringUtils::fnv1a_32(dbcName.c_str(), dbcName.length());
+
+        _dbcNameToStringTable[dbcNameHash].CopyFrom(stringTable);
         return true;
     }
 
@@ -106,5 +109,5 @@ private:
     std::vector<NDBC::EmotesText> _emotesTexts;
     std::vector<NDBC::Spell> _spells;
 
-    StringTable _dbcStringTable;
+    robin_hood::unordered_map<u32, StringTable> _dbcNameToStringTable;
 };
