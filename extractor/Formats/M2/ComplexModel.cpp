@@ -730,14 +730,12 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
 
         if (numTextures > 0)
         {
-            const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
-
             for each (ComplexTexture texture in textures)
             {
                 output.write(reinterpret_cast<char const*>(&texture.type), sizeof(texture.type));
                 output.write(reinterpret_cast<char const*>(&texture.flags), sizeof(texture.flags));
 
-                u32 textureNameIndex = std::numeric_limits<u32>().max();
+                u32 textureNameHash = std::numeric_limits<u32>().max();
 
                 if (texture.type == ComplexTextureType::NONE)
                 {
@@ -747,11 +745,10 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
                     std::string texturePathStr = texturePath.string();
                     std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
 
-                    u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
-                    textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
+                    textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
                 }
 
-                output.write(reinterpret_cast<char const*>(&textureNameIndex), sizeof(textureNameIndex));
+                output.write(reinterpret_cast<char const*>(&textureNameHash), sizeof(textureNameHash));
             }
         }
     }

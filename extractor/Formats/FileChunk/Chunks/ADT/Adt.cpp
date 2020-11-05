@@ -44,8 +44,6 @@ namespace Adt
         // Create a StringTable for alpha map texture names
         StringTable stringTable;
 
-        const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
-
         // Insert data from ADT into Chunk here
         for (u16 i = 0; i < MAP_CELLS_PER_CHUNK; i++)
         {
@@ -106,13 +104,8 @@ namespace Adt
                 std::string texturePathStr = texturePath.string();
                 std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
 
-                u32 textureNameIndex = std::numeric_limits<u32>().max();
-
                 u32 textureNameHash = StringUtils::fnv1a_32(texturePathStr.c_str(), texturePathStr.length());
-                textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-
-                // Store the stringTableIndex in the cell
-                cell.layers[j].textureId = textureNameIndex;
+                cell.layers[j].textureId = textureNameHash;
 
                 // If the layer has alpha data, add it to our per-chunk alphamap
                 if (j > 0)

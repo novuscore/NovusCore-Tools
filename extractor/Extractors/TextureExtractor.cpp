@@ -7,88 +7,57 @@
 #include "../Formats/BLP/BlpConvert.h"
 
 #include <fstream>
+#include <filesystem>
 #include <tracy/Tracy.hpp>
+
+namespace fs = std::filesystem;
 
 void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
     auto& globalData = ServiceLocator::GetGlobalData();
     json& textureConfig = globalData->config.GetJsonObjectByKey("Texture");
-    
-    // Check if we should completely disable extracting the textures (This should only be used for debugging)
-    if (textureConfig["DisableStringTableGeneration"] == true)
+
+    // Check if we should extract the textures
+    if (textureConfig["Extract"] == false)
         return;
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
     NC_LOG_SUCCESS("Fetching Textures");
 
+    JobBatch textureJobBatch;
+
     // Load all textures into a StringTable
     mpqLoader->GetFiles("*.blp", [&](char* fileName, size_t fileNameLength)
     {
-        fs::path texturePath = fileName;
-        texturePath.replace_extension("dds");
-
-        std::string texturePathStr = texturePath.string();
+        std::string texturePathStr = fileName;
         std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
 
-        _textureStringTable.AddString(texturePathStr);
-    });
-
-    // Check if we should extract the textures (We still need to build the stringtable above)
-    if (textureConfig["Extract"] == false)
-        return;
-
-    JobBatch textureJobBatch;
-    for (u32 i = 0; i < _textureStringTable.GetNumStrings(); i++)
-    {
-        const std::string& texturePath = _textureStringTable.GetString(i);
-
-        fs::path outputPath = (globalData->texturePath / texturePath).make_preferred();
-        fs::path textureFilePath = texturePath;
-        textureFilePath.replace_extension("blp");
+        fs::path texturePath = texturePathStr;
+        fs::path outputPath = (globalData->texturePath / texturePath).replace_extension("dds").make_preferred();
 
         // Create Directories for the texture
         fs::create_directories(outputPath.parent_path());
 
-        textureJobBatch.AddJob(0, [textureFilePath, outputPath]()
-        {
-            ZoneScopedN("TextureExtractor::Extract Texture");
+        textureJobBatch.AddJob(0, [texturePath, outputPath]()
+            {
+                ZoneScopedN("TextureExtractor::Extract Texture");
 
-            std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
-            std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(textureFilePath.string());
+                std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
+                std::shared_ptr<Bytebuffer> byteBuffer = mpqLoader->GetFile(texturePath.string());
 
-            if (byteBuffer == nullptr || byteBuffer->size == 0) // The bytebuffer return is nullptr if the file didn't exist
-                return;
+                if (byteBuffer == nullptr || byteBuffer->size == 0) // The bytebuffer return is nullptr if the file didn't exist
+                    return;
 
-            // Convert from BLP to DDS
-            BLP::BlpConvert blpConvert;
-            blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
-        });
-    }
+                // Convert from BLP to DDS
+                BLP::BlpConvert blpConvert;
+                blpConvert.ConvertBLP(byteBuffer->GetDataPointer(), byteBuffer->size, outputPath.string(), true);
+            });
+
+    });
 
     NC_LOG_MESSAGE("Adding Textures batch of %u jobs", textureJobBatch.GetJobCount());
 
     JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(textureJobBatch);
     mainBatchToken.WaitUntilFinished();
-}
-
-void TextureExtractor::CreateTextureStringTableFile()
-{
-    auto& globalData = ServiceLocator::GetGlobalData();
-    fs::path outputPath = globalData->texturePath / "TextureStringTable.nst";
-
-    // Create a file
-    std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
-    if (!output)
-    {
-        printf("Failed to create Texture StringTable file. Check admin permissions\n");
-        return;
-    }
-
-    // Serialize and write our StringTable to the file
-    std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<8388608>();
-    _textureStringTable.Serialize(stringTableByteBuffer.get());
-    output.write(reinterpret_cast<char const*>(stringTableByteBuffer->GetDataPointer()), stringTableByteBuffer->writtenData);
-
-    output.close();
 }

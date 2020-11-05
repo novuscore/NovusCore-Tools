@@ -46,8 +46,7 @@ i32 main()
     {
         config["Texture"] =
         {
-            {"Extract", true},
-            {"DisableStringTableGeneration", false}
+            {"Extract", true}
         };
 
         config["Map"] =
@@ -88,11 +87,8 @@ i32 main()
     {
         globalData->dbcExtractor->ExtractDBCs(jobBatchRunner);
         globalData->textureExtractor->ExtractTextures(jobBatchRunner);
-        {
-            globalData->mapExtractor->ExtractMaps(jobBatchRunner);
-            globalData->m2Extractor->ExtractM2s(jobBatchRunner);
-        }
-        globalData->textureExtractor->CreateTextureStringTableFile();
+        globalData->mapExtractor->ExtractMaps(jobBatchRunner);
+        globalData->m2Extractor->ExtractM2s(jobBatchRunner);
     }
     jobBatchRunner->Stop();
 

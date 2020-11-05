@@ -54,12 +54,9 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
 
     Bytebuffer textureNameBuffer(motx.textureNames, motx.size);
 
-    const StringTable& textureStringTable = ServiceLocator::GetGlobalData()->textureExtractor->GetStringTable();
-
     std::string textureName;
     fs::path texturePath;
-    u32 textureNameIndex = 0;
-    u32 textureNameHash = 0;
+    u32 textureNameHash = std::numeric_limits<u32>().max();
 
     for (MOMT::MOMTData& momtData : momt.data)
     {
@@ -76,11 +73,8 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            textureNameIndex = std::numeric_limits<u32>().max();
             textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
-
-            textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-            material.textureID[0] = textureNameIndex;
+            material.textureID[0] = textureNameHash;
         }
         
         if ((momtData.textureOffset2 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset2] != '\0'))
@@ -91,11 +85,8 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            textureNameIndex = std::numeric_limits<u32>().max();
             textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
-
-            textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-            material.textureID[1] = textureNameIndex;
+            material.textureID[1] = textureNameHash;
         }
 
         if ((momtData.textureOffset3 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset3] != '\0'))
@@ -106,11 +97,8 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
 
-            textureNameIndex = std::numeric_limits<u32>().max();
             textureNameHash = StringUtils::fnv1a_32(textureName.c_str(), textureName.length());
-
-            textureStringTable.TryFindHashedString(textureNameHash, textureNameIndex);
-            material.textureID[2] = textureNameIndex;
+            material.textureID[2] = textureNameHash;
         }
     }
 
