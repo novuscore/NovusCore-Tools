@@ -24,16 +24,24 @@ void ComplexModel::ReadFromM2(M2File& file)
         m2Vertices.resize(numVertices);
         memcpy(m2Vertices.data(), &file.m2Buffer->GetDataPointer()[verticesOffset], numVertices * sizeof(M2Vertex));
 
-        for (M2Vertex& m2Vertex : m2Vertices)
+        if (m2Vertices.size() > 0)
         {
-            ComplexVertex& vertex = vertices.emplace_back();
-            vertex.position = m2Vertex.position;
-            vertex.uvCords[0] = m2Vertex.uvCords[0];
-            vertex.uvCords[1] = m2Vertex.uvCords[1];
+            for (M2Vertex& m2Vertex : m2Vertices)
+            {
+                ComplexVertex& vertex = vertices.emplace_back();
+                vertex.position = m2Vertex.position;
+                vertex.position = vec3(-vertex.position.x, vertex.position.z, -vertex.position.y); // Fix coordinate system in the vertices
 
-            vec2 octNormal = Utils::OctNormalEncode(m2Vertex.normal);
-            vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
-            vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
+                vertex.uvCords[0] = m2Vertex.uvCords[0];
+                vertex.uvCords[1] = m2Vertex.uvCords[1];
+
+                vec3 normal = vec3(-m2Vertex.normal.x, m2Vertex.normal.z, -m2Vertex.normal.y); // Fix coordinate system in the vertices
+                normal = glm::normalize(normal); // Fix coordinate system in the vertices
+
+                vec2 octNormal = Utils::OctNormalEncode(normal);
+                vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
+                vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
+            }
         }
     }
 
@@ -179,6 +187,13 @@ void ComplexModel::ReadFromM2(M2File& file)
         }
     }
 
+    // Read Bounding Box
+    {
+        cullingData.minBoundingBox = m2.boundingBox.min;
+        cullingData.maxBoundingBox = m2.boundingBox.max;
+        cullingData.boundingSphereRadius = m2.boundingSphereRadius;
+    }
+
     FixData();
     CalculateShaderID();
 }
@@ -190,6 +205,50 @@ void ComplexModel::FixData()
     {
         u16& localVertexIndex = modelData.indices[i];
         localVertexIndex = modelData.vertexLookupIds[localVertexIndex];
+    }
+
+    // Clone and invert two sided renderbatches so we don't need to have double pipelines
+    u32 numRenderBatches = static_cast<u32>(modelData.renderBatches.size());
+    for (u32 i = 0; i < numRenderBatches; i++)
+    {
+        const ComplexRenderBatch renderBatch = modelData.renderBatches[i];
+
+        u32 numTextureUnits = static_cast<u32>(renderBatch.textureUnits.size());
+        if (numTextureUnits > 0)
+        {
+            for (u32 j = 0; j < numTextureUnits; j++)
+            {
+                const ComplexTextureUnit& textureUnit = renderBatch.textureUnits[j];
+                ComplexMaterial& material = materials[textureUnit.materialIndex];
+
+                if (material.flags.disableBackfaceCulling)
+                {
+                    ComplexRenderBatch& clonedRenderBatch = modelData.renderBatches.emplace_back();
+                    clonedRenderBatch.groupId = renderBatch.groupId;
+                    clonedRenderBatch.indexCount = renderBatch.indexCount;
+                    clonedRenderBatch.indexStart = renderBatch.indexStart;
+                    clonedRenderBatch.textureUnits = renderBatch.textureUnits;
+                    clonedRenderBatch.vertexCount = renderBatch.vertexCount;
+                    clonedRenderBatch.vertexStart = renderBatch.vertexStart;
+
+                    u32 numIndicesBeforeAdd = static_cast<u32>(modelData.indices.size());
+                    u32 indexCount = clonedRenderBatch.indexCount;
+                    u32 indexStart = clonedRenderBatch.indexStart;
+
+                    modelData.indices.resize(numIndicesBeforeAdd + indexCount);
+                    for (u32 k = 0; k < indexCount; k++)
+                    {
+                        u32 dst = numIndicesBeforeAdd + k;
+                        u32 src = indexStart + (indexCount - k) - 1; // Read the original indices backwards, this is our src
+
+                        modelData.indices[dst] = modelData.indices[src];
+                    }
+
+                    clonedRenderBatch.indexStart = numIndicesBeforeAdd;
+                    break;
+                }
+            }
+        }
     }
 }
 
@@ -813,6 +872,9 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
             }
         }
     }
+
+    // Write CullingData
+    output.write(reinterpret_cast<char const*>(&cullingData), sizeof(CullingData));
 
     output.close();
 }

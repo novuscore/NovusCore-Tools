@@ -27,6 +27,7 @@ enum class ComplexTextureType : u32
     COMPONENT_ENVIRONMENT, // OBSOLETE
     COMPONENT_CHAR_HAIR,
     COMPONENT_CHAR_FACIAL_HAIR, // OBSOLETE
+    COMPONENT_SKIN_EXTRA,
     COMPONENT_UI_SKIN,
     COMPONENT_TAUREN_MANE, // OBSOLETE
     COMPONENT_MONSTER_SKIN_1,
@@ -248,11 +249,18 @@ enum PixelShaderID : u8
     Decal
 };
 
+struct CullingData
+{
+    hvec3 minBoundingBox = hvec3(static_cast<f16>(100000.0f));
+    hvec3 maxBoundingBox = hvec3(static_cast<f16>(-100000.0f));
+    f32 boundingSphereRadius = 0.0f;
+}; // 16 bytes
+
 struct M2File;
 struct ComplexModel
 {
 public:
-    NovusTypeHeader header = NovusTypeHeader(10, 1);
+    NovusTypeHeader header = NovusTypeHeader(10, 2);
 
     char* name;
     ComplexModelFlag flags;
@@ -273,6 +281,8 @@ public:
     std::vector<u16> textureUVAnimationLookupTable;
 
     std::vector<u16> textureCombinerCombos;
+
+    CullingData cullingData;
 
 public:
     void ReadFromM2(M2File& file);
