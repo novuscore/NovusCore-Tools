@@ -181,6 +181,13 @@ void ComplexModel::ReadFromM2(M2File& file)
                         }
 
                         textureUnit.textureTransparencyLookupId = m2Batch->textureTransparencyLookupId;
+
+                        // Check priorityPlane and take the biggest one for the batch
+                        u8 renderPriority = static_cast<u8>(static_cast<i16>(m2Batch->priorityPlane) + 127);
+                        if (renderPriority > renderBatch.renderPriority)
+                        {
+                            renderBatch.renderPriority = renderPriority;
+                        }
                     }
                 }
             }
@@ -740,7 +747,7 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
                 if (texture.type == ComplexTextureType::NONE)
                 {
                     fs::path texturePath = texture.fileName;
-                    texturePath.replace_extension("dds");
+                    texturePath.replace_extension("dds").make_preferred();
 
                     std::string texturePathStr = texturePath.string();
                     std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);

@@ -68,7 +68,7 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
         if ((momtData.textureOffset1 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset1] != '\0'))
         {
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset1);
-            texturePath.replace_extension("dds");
+            texturePath.replace_extension("dds").make_preferred();
 
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
@@ -80,7 +80,7 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
         if ((momtData.textureOffset2 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset2] != '\0'))
         {
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset2);
-            texturePath.replace_extension("dds");
+            texturePath.replace_extension("dds").make_preferred();
 
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);
@@ -92,7 +92,7 @@ void WMO_ROOT::SaveToDisk(const fs::path& filePath)
         if ((momtData.textureOffset3 < textureNameBuffer.size) && (textureNameBuffer.GetDataPointer()[momtData.textureOffset3] != '\0'))
         {
             texturePath = GetTextureNameByOffset(textureNameBuffer, momtData.textureOffset3);
-            texturePath.replace_extension("dds");
+            texturePath.replace_extension("dds").make_preferred();
 
             textureName = texturePath.string();
             std::transform(textureName.begin(), textureName.end(), textureName.begin(), ::tolower);

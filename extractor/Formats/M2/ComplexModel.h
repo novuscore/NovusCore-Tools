@@ -175,6 +175,7 @@ struct ComplexRenderBatch
     u32 vertexCount = 0;
     u32 indexStart = 0;
     u32 indexCount = 0;
+    u8 renderPriority = 0;
 
     // TODO: Add the remaining data later
 
@@ -260,7 +261,7 @@ struct M2File;
 struct ComplexModel
 {
 public:
-    NovusTypeHeader header = NovusTypeHeader(10, 2);
+    NovusTypeHeader header = NovusTypeHeader(10, 3);
 
     char* name;
     ComplexModelFlag flags;

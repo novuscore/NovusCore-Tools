@@ -99,7 +99,7 @@ namespace Adt
                 const std::string& textureName = textureNames[textureId];
 
                 fs::path texturePath = textureName;
-                texturePath.replace_extension("dds");
+                texturePath.replace_extension("dds").make_preferred();
 
                 std::string texturePathStr = texturePath.string();
                 std::transform(texturePathStr.begin(), texturePathStr.end(), texturePathStr.begin(), ::tolower);
