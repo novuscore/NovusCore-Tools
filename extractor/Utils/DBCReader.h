@@ -94,6 +94,7 @@ public:
 
     DBCRow GetRow(u32 id);
     u32 GetNumRows() { return _rowCount; }
+    u32 GetRowSize() { return _rowSize; }
     u32 GetNumFields() { return _fieldCount; }
     u8* GetStringTable() { return _stringTable; }
 

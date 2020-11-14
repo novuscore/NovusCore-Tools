@@ -38,7 +38,7 @@ private:
     bool LoadDBCFile(std::string_view path, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader, u32& numRows);
 
     template <typename T>
-    bool SaveDBCFile(std::shared_ptr<GlobalData> globalData, fs::path name, std::vector<T>& data, StringTable& stringTable)
+    bool SaveDBCFile(std::shared_ptr<GlobalData> globalData, u32 numColumns, fs::path name, std::vector<T>& data, StringTable& stringTable)
     {
         fs::path outputPath = (globalData->ndbcPath / name).replace_extension("ndbc");
         std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
@@ -51,7 +51,19 @@ private:
         u32 numRows = static_cast<u32>(data.size());
 
         static NDBC::NDBCHeader header;
+
         output.write(reinterpret_cast<char const*>(&header), sizeof(header)); // Write NDBC Header
+        output.write(reinterpret_cast<char const*>(&numColumns), sizeof(u32)); // Write Number of Columns
+
+        constexpr char zeroTerminator = '\0';
+        u32 columnType = 0; // In the future we would like to load the name & type based on file layouts
+
+        for (u32 i = 0; i < numColumns; i++)
+        {
+            output.write(&zeroTerminator, sizeof(char)); // Write Invalid String Indexes for Column Names (Used for editing in the client)
+            output.write(reinterpret_cast<char const*>(&columnType), sizeof(u32)); // Write Type (0 = I32, 1 = U32, 2 = F32)
+        }
+
         output.write(reinterpret_cast<char const*>(&numRows), sizeof(u32)); // Write number of rows
         output.write(reinterpret_cast<char const*>(data.data()), numRows * sizeof(T)); // Write Data
 

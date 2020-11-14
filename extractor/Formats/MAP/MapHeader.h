@@ -1,6 +1,7 @@
 #pragma once
 #include <NovusTypes.h>
 #include "Chunk.h"
+#include <fstream>
 
 #pragma pack(push, 1)
 struct MapDetailFlag
