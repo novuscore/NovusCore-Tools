@@ -4,6 +4,8 @@
 
 #include "M2.h"
 
+#include <Utils/ByteBuffer.h>
+#include <Utils/DynamicBytebuffer.h>
 #include <vector>
 #include <filesystem>
 
@@ -94,7 +96,7 @@ struct ComplexAnimationSequence
     u16 nextAliasId = 0; // Specifies the id for the actual animation.
 };
 
-enum class AnimationTrackInterpolationType
+enum class AnimationTrackInterpolationType : u8
 {
     NONE,
     LINEAR,
@@ -102,34 +104,255 @@ enum class AnimationTrackInterpolationType
     CUBIC_HERMIT_SPLINE // Only used for M2SplineKey tracks (WowDev.Wiki states Bezier/Hermit might be in the wrong order)
 };
 
-enum class ComplexAnimationTrackType
-{
-    VERTEX_POSITION,
-    VERTEX_ROTATION,
-    VERTEX_SCALE,
-    UV_POSITION,
-    UV_SCALE
-};
-
+template <typename T>
 struct ComplexAnimationTrack
 {
     ComplexAnimationTrack() { }
-    ComplexAnimationTrack(ComplexAnimationTrackType trackType) : type(trackType) { }
 
-    ComplexAnimationTrackType type;
     AnimationTrackInterpolationType interpolationType;
     std::vector<u16> sequencesInUse;
 
     // Data is loaded from the sequence
+
+    /*
+        Timestamps & Values can store values for each sequence in the header of the model.
+        Thus you first index into "Timestamps & Values" with the sequence index and from
+        there you have the right vector that you can further index into or loop over.
+    */
+    std::vector<std::vector<u32>> timestamps;
+    std::vector<std::vector<T>> values;
+
+    void Serialize(Bytebuffer* buffer)
+    {
+        buffer->Put(interpolationType);
+
+        u32 numSequencesInUse = static_cast<u32>(sequencesInUse.size());
+        {
+            buffer->PutU32(numSequencesInUse);
+
+            if (numSequencesInUse > 0)
+            {
+                buffer->PutBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
+            }
+        }
+
+        u32 numSequencesForTimestamps = static_cast<u32>(timestamps.size());
+        {
+            buffer->PutU32(numSequencesForTimestamps);
+
+            if (numSequencesForTimestamps > 0)
+            {
+                for (u32 i = 0; i < numSequencesForTimestamps; i++)
+                {
+                    u32 numTimestamps = static_cast<u32>(timestamps[i].size());
+                    buffer->PutU32(numTimestamps);
+
+                    if (numTimestamps > 0)
+                    {
+                        buffer->PutBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
+                    }
+                }
+            }
+        }
+
+        u32 numSequencesForValues = static_cast<u32>(values.size());
+        {
+            buffer->PutU32(numSequencesForValues);
+
+            if (numSequencesForValues > 0)
+            {
+                for (u32 i = 0; i < numSequencesForValues; i++)
+                {
+                    u32 numValues = static_cast<u32>(values[i].size());
+                    buffer->PutU32(numValues);
+
+                    if (numValues > 0)
+                    {
+                        buffer->PutBytes(&values[i][0], numValues * sizeof(T));
+                    }
+                }
+            }
+        }
+    }
+    void Serialize(DynamicBytebuffer* buffer)
+    {
+        buffer->Put(interpolationType);
+
+        u32 numSequencesInUse = static_cast<u32>(sequencesInUse.size());
+        {
+            buffer->PutU32(numSequencesInUse);
+
+            if (numSequencesInUse > 0)
+            {
+                buffer->PutBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
+            }
+        }
+
+        u32 numSequencesForTimestamps = static_cast<u32>(timestamps.size());
+        {
+            buffer->PutU32(numSequencesForTimestamps);
+
+            if (numSequencesForTimestamps > 0)
+            {
+                for (u32 i = 0; i < numSequencesForTimestamps; i++)
+                {
+                    u32 numTimestamps = static_cast<u32>(timestamps[i].size());
+                    buffer->PutU32(numTimestamps);
+
+                    if (numTimestamps > 0)
+                    {
+                        buffer->PutBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
+                    }
+                }
+            }
+        }
+
+        u32 numSequencesForValues = static_cast<u32>(values.size());
+        {
+            buffer->PutU32(numSequencesForValues);
+
+            if (numSequencesForValues > 0)
+            {
+                for (u32 i = 0; i < numSequencesForValues; i++)
+                {
+                    u32 numValues = static_cast<u32>(values[i].size());
+                    buffer->PutU32(numValues);
+
+                    if (numValues > 0)
+                    {
+                        buffer->PutBytes(&values[i][0], numValues * sizeof(T));
+                    }
+                }
+            }
+        }
+    }
+    void Deserialize(Bytebuffer* buffer)
+    {
+        buffer->Get(interpolationType);
+
+        u32 numSequencesInUse = 0;
+        {
+            buffer->GetU32(numSequencesInUse);
+
+            if (numSequencesInUse > 0)
+            {
+                sequencesInUse.resize(numSequencesInUse);
+                buffer->GetBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
+            }
+        }
+
+        u32 numSequencesForTimestamps = 0;
+        {
+            buffer->GetU32(numSequencesForTimestamps);
+
+            if (numSequencesForTimestamps > 0)
+            {
+                timestamps.resize(numSequencesForTimestamps);
+
+                for (u32 i = 0; i < numSequencesForTimestamps; i++)
+                {
+                    u32 numTimestamps = 0;
+                    buffer->GetU32(numTimestamps);
+
+                    if (numTimestamps > 0)
+                    {
+                        timestamps[i].resize(numTimestamps);
+                        buffer->GetBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
+                    }
+                }
+            }
+        }
+
+        u32 numSequencesForValues = 0;
+        {
+            buffer->GetU32(numSequencesForValues);
+
+            if (numSequencesForValues > 0)
+            {
+                values.resize(numSequencesForValues);
+
+                for (u32 i = 0; i < numSequencesForValues; i++)
+                {
+                    u32 numValues = 0;
+                    buffer->GetU32(numValues);
+
+                    if (numValues > 0)
+                    {
+                        values[i].resize(numValues);
+                        buffer->GetBytes(&values[i][0], numValues * sizeof(T));
+                    }
+                }
+            }
+        }
+    }
+    void Deserialize(DynamicBytebuffer* buffer)
+    {
+        buffer->Get(interpolationType);
+
+        u32 numSequencesInUse = 0;
+        {
+            buffer->GetU32(numSequencesInUse);
+
+            if (numSequencesInUse > 0)
+            {
+                sequencesInUse.resize(numSequencesInUse);
+                buffer->GetBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
+            }
+        }
+
+        u32 numSequencesForTimestamps = 0;
+        {
+            buffer->GetU32(numSequencesForTimestamps);
+
+            if (numSequencesForTimestamps > 0)
+            {
+                timestamps.resize(numSequencesForTimestamps);
+
+                for (u32 i = 0; i < numSequencesForTimestamps; i++)
+                {
+                    u32 numTimestamps = 0;
+                    buffer->GetU32(numTimestamps);
+
+                    if (numTimestamps > 0)
+                    {
+                        timestamps[i].resize(numTimestamps);
+                        buffer->GetBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
+                    }
+                }
+            }
+        }
+
+        u32 numSequencesForValues = 0;
+        {
+            buffer->GetU32(numSequencesForValues);
+
+            if (numSequencesForValues > 0)
+            {
+                values.resize(numSequencesForValues);
+
+                for (u32 i = 0; i < numSequencesForValues; i++)
+                {
+                    u32 numValues = 0;
+                    buffer->GetU32(numValues);
+
+                    if (numValues > 0)
+                    {
+                        values[i].resize(numValues);
+                        buffer->GetBytes(&values[i][0], numValues * sizeof(T));
+                    }
+                }
+            }
+        }
+    }
 };
 
 struct ComplexTextureTransform
 {
     // Check https://wowdev.wiki/M2#Texture_Transforms
 
-    ComplexAnimationTrack position = ComplexAnimationTrack(ComplexAnimationTrackType::VERTEX_POSITION);
-    ComplexAnimationTrack rotation = ComplexAnimationTrack(ComplexAnimationTrackType::VERTEX_ROTATION); 
-    ComplexAnimationTrack scaling = ComplexAnimationTrack(ComplexAnimationTrackType::VERTEX_SCALE);
+    ComplexAnimationTrack<vec3> position;
+    ComplexAnimationTrack<vec4> rotation;
+    ComplexAnimationTrack<vec3> scaling;
 };
 
 // Check https://wowdev.wiki/M2/.skin#Texture_units
@@ -261,7 +484,7 @@ struct M2File;
 struct ComplexModel
 {
 public:
-    NovusTypeHeader header = NovusTypeHeader(10, 3);
+    NovusTypeHeader header = NovusTypeHeader(10, 4);
 
     char* name;
     ComplexModelFlag flags;

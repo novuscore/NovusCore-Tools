@@ -32,7 +32,7 @@ namespace NDBC
     struct NDBCHeader
     {
         u32 token = NDBC_TOKEN;
-        u32 version = 3;
+        u32 version = 4;
     };
 
     struct Map

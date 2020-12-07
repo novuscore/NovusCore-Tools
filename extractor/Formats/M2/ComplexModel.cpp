@@ -29,15 +29,12 @@ void ComplexModel::ReadFromM2(M2File& file)
             for (M2Vertex& m2Vertex : m2Vertices)
             {
                 ComplexVertex& vertex = vertices.emplace_back();
-                vertex.position = m2Vertex.position;
-                vertex.position = vec3(-vertex.position.x, vertex.position.z, -vertex.position.y); // Fix coordinate system in the vertices
+                vertex.position = vec3(-m2Vertex.position.x, -m2Vertex.position.y, m2Vertex.position.z);
 
                 vertex.uvCords[0] = m2Vertex.uvCords[0];
                 vertex.uvCords[1] = m2Vertex.uvCords[1];
 
-                vec3 normal = vec3(-m2Vertex.normal.x, m2Vertex.normal.z, -m2Vertex.normal.y); // Fix coordinate system in the vertices
-                normal = glm::normalize(normal); // Fix coordinate system in the vertices
-
+                vec3 normal = glm::normalize(vec3(-m2Vertex.normal.x, -m2Vertex.normal.y, m2Vertex.normal.z));
                 vec2 octNormal = Utils::OctNormalEncode(normal);
                 vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
                 vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
@@ -193,11 +190,11 @@ void ComplexModel::ReadFromM2(M2File& file)
             }
         }
     }
-
+    // vertex.position = vec3(-m2Vertex.position.x, -m2Vertex.position.y, m2Vertex.position.z);
     // Read Bounding Box
     {
-        cullingData.minBoundingBox = m2.boundingBox.min;
-        cullingData.maxBoundingBox = m2.boundingBox.max;
+        cullingData.minBoundingBox = hvec3(-m2.boundingBox.min.x, -m2.boundingBox.min.y, m2.boundingBox.min.z);
+        cullingData.maxBoundingBox = hvec3(-m2.boundingBox.max.x, -m2.boundingBox.max.y, m2.boundingBox.max.z);
         cullingData.boundingSphereRadius = m2.boundingSphereRadius;
     }
 

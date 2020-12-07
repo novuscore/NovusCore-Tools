@@ -115,8 +115,7 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
         {
             const u16 index = movi.indices[i];
             vec3 position = movt.vertexPosition[index];
-
-            position = vec3(-position.x, position.z, -position.y);
+            position = vec3(-position.x, -position.y, position.z);
 
             for (u32 j = 0; j < 3; j++)
             {
@@ -153,12 +152,11 @@ void WMO_OBJECT::SaveToDisk(const fs::path& filePath, const WMO_ROOT& root)
 
         // Position
         vec3 pos = movt.vertexPosition[i];
-        vertex.position = vec3(-pos.x, pos.z, -pos.y);
+        vertex.position = vec3(-pos.x, -pos.y, pos.z);
 
         // Normal
-        vec3 normal = monr.vertexNormals[i];
-        normal = vec3(-normal.x, normal.z, -normal.y);
-
+        vec3 norm = monr.vertexNormals[i];
+        vec3 normal = vec3(-norm.x, -norm.y, norm.z);
         vec2 octNormal = Utils::OctNormalEncode(normal);
 
         vertex.octNormal[0] = static_cast<u8>(glm::round(octNormal.x * 255.0f));
