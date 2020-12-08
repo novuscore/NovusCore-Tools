@@ -475,8 +475,8 @@ enum PixelShaderID : u8
 
 struct CullingData
 {
-    hvec3 minBoundingBox = hvec3(static_cast<f16>(100000.0f));
-    hvec3 maxBoundingBox = hvec3(static_cast<f16>(-100000.0f));
+    hvec3 minBoundingBox = hvec3(static_cast<f16>(65535.0f));
+    hvec3 maxBoundingBox = hvec3(static_cast<f16>(-65535.0f));
     f32 boundingSphereRadius = 0.0f;
 }; // 16 bytes
 

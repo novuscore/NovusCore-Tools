@@ -26,6 +26,8 @@ void ComplexModel::ReadFromM2(M2File& file)
 
         if (m2Vertices.size() > 0)
         {
+            cullingData.boundingSphereRadius = m2.boundingSphereRadius;
+
             for (M2Vertex& m2Vertex : m2Vertices)
             {
                 ComplexVertex& vertex = vertices.emplace_back();
@@ -38,6 +40,15 @@ void ComplexModel::ReadFromM2(M2File& file)
                 vec2 octNormal = Utils::OctNormalEncode(normal);
                 vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
                 vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
+
+                for (u32 i = 0; i < 3; i++)
+                {
+                    if (vertex.position[i] < cullingData.minBoundingBox[i])
+                        cullingData.minBoundingBox[i] = vertex.position[i];
+
+                    if (vertex.position[i] > cullingData.maxBoundingBox[i])
+                        cullingData.maxBoundingBox[i] = vertex.position[i];
+                }
             }
         }
     }
@@ -189,13 +200,6 @@ void ComplexModel::ReadFromM2(M2File& file)
                 }
             }
         }
-    }
-    // vertex.position = vec3(-m2Vertex.position.x, -m2Vertex.position.y, m2Vertex.position.z);
-    // Read Bounding Box
-    {
-        cullingData.minBoundingBox = hvec3(-m2.boundingBox.min.x, -m2.boundingBox.min.y, m2.boundingBox.min.z);
-        cullingData.maxBoundingBox = hvec3(-m2.boundingBox.max.x, -m2.boundingBox.max.y, m2.boundingBox.max.z);
-        cullingData.boundingSphereRadius = m2.boundingSphereRadius;
     }
 
     FixData();
