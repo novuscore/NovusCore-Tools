@@ -166,11 +166,22 @@ bool DBCExtractor::LoadLight(std::shared_ptr<GlobalData> globalData, std::shared
         light.id = row.GetUInt32(0);
         light.mapId = row.GetUInt32(1);
 
+
         // The position is stored as inches, we divide by 36.0f to convert to yards
         // The proper conversion to world space is (X = Z), (Y = X), (Z = Y)
-        light.position.x = 17066.666f - row.GetFloat(4) / 36.0f;
-        light.position.y = 17066.666f - row.GetFloat(2) / 36.0f;
+
+
+        light.position.x = row.GetFloat(4) / 36.0f;
+        light.position.y = row.GetFloat(2) / 36.0f;
         light.position.z = row.GetFloat(3) / 36.0f;
+
+        // Only correct non default lights
+        if (light.position.x != 0 || light.position.y != 0 || light.position.z != 0)
+        {
+            light.position.x = 17066.666f - light.position.x;
+            light.position.y = 17066.666f - light.position.y;
+        }
+
         light.fallOff.x = row.GetFloat(5) / 36.0f;
         light.fallOff.y = row.GetFloat(6) / 36.0f;
 

@@ -187,6 +187,7 @@ namespace Adt
                 fs::path nmorPath = wmoName;
                 nmorPath.replace_extension(".nmor");
 
+                mapObjectPlacement.uniqueID = modfData.uniqueId;
                 mapObjectPlacement.nameID = stringTable.AddString(nmorPath.string());
                 mapObjectPlacement.position = vec3(17066.66602f - modfData.position.z, 17066.66602f - modfData.position.x, modfData.position.y); // 17066.66602f is half the max map size (Called 'Terrain::MAP_HALF_SIZE' in the engine)
                 mapObjectPlacement.rotation = vec3(modfData.rotation.z, modfData.rotation.x, modfData.rotation.y);
@@ -222,6 +223,7 @@ namespace Adt
                 fs::path cmodelPath = m2Name;
                 cmodelPath.replace_extension(".cmodel");
 
+                complexModelPlacement.uniqueID = mddfData.uniqueId;
                 complexModelPlacement.nameID = stringTable.AddString(cmodelPath.string());
                 complexModelPlacement.position = vec3(17066.66602f - mddfData.position.z, 17066.66602f - mddfData.position.x, mddfData.position.y); // 17066.66602f is half the max map size (Called 'Terrain::MAP_HALF_SIZE' in the engine)
                 complexModelPlacement.rotation = vec3(mddfData.rotation.z, mddfData.rotation.x, mddfData.rotation.y);
