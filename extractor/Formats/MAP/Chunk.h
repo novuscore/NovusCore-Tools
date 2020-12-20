@@ -25,7 +25,7 @@
 #include <vector>
 
 constexpr i32 MAP_CHUNK_TOKEN = 1128812107;  // UTF8 -> Binary -> Decimal for "chnk"
-constexpr i32 MAP_CHUNK_VERSION = 6;
+constexpr i32 MAP_CHUNK_VERSION = 7;
 
 constexpr u32 MAP_CHUNKS_PER_MAP_SIDE = 64;
 constexpr u16 MAP_CHUNK_INVALID = std::numeric_limits<u16>().max();
@@ -90,9 +90,21 @@ struct CellLiquidInstance
     // Bit 8 (hasVertexData)
     u8 packedData = 0;
 
-    hvec2 heightLevel = hvec2(0.f, 0.f); // Min, Max
     u8 packedOffset = 0; // X, Y
     u8 packedSize = 0; // Width, Height
+
+    hvec2 heightLevel = hvec2(0.f, 0.f); // Min, Max
+
+    /*u32 liquidType;
+
+    u32 liquidVertexFormat;
+    u32 bitmaskOffset;
+    u32 vertexDataOffset;
+
+    vec2 heightLevel = vec2(0.f, 0.f); // Min, Max
+
+    uvec2 offsets;
+    uvec2 sizes;*/
 };
 
 

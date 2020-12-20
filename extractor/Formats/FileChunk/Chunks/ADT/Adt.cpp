@@ -282,10 +282,18 @@ namespace Adt
 
         // Water (This data is prepared in the Mh2o::Read, because we need direct access to the buffer in order to convert the data)
         {
-            // Liquid Headers
+            u32 numLiquidBytes = static_cast<u32>(mh2o.waterData.size());
+            output.write(reinterpret_cast<char const*>(&numLiquidBytes), sizeof(u32)); // Write number of liquid headers
+
+            if (numLiquidBytes > 0)
             {
-                u16 numLiquidHeaders = static_cast<u16>(mh2o.headers.size());
-                output.write(reinterpret_cast<char const*>(&numLiquidHeaders), sizeof(u16)); // Write number of liquid headers
+                output.write(reinterpret_cast<char const*>(mh2o.waterData.data()), sizeof(u8) * numLiquidBytes); // Write liquid headers
+            }
+
+            /*// Liquid Headers
+            {
+                u32 numLiquidHeaders = static_cast<u32>(mh2o.headers.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidHeaders), sizeof(u32)); // Write number of liquid headers
 
                 if (numLiquidHeaders > 0)
                 {
@@ -295,8 +303,8 @@ namespace Adt
 
             // Liquid Instances
             {
-                u16 numLiquidInstances = static_cast<u16>(mh2o.instances.size());
-                output.write(reinterpret_cast<char const*>(&numLiquidInstances), sizeof(u16)); // Write number of liquid instances
+                u32 numLiquidInstances = static_cast<u32>(mh2o.instances.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidInstances), sizeof(u32)); // Write number of liquid instances
 
                 if (numLiquidInstances > 0)
                 {
@@ -306,8 +314,8 @@ namespace Adt
 
             // Liquid Attributes
             {
-                u8 numLiquidAttributes = static_cast<u8>(mh2o.attributes.size());
-                output.write(reinterpret_cast<char const*>(&numLiquidAttributes), sizeof(u8)); // Write number of liquid attributes
+                u32 numLiquidAttributes = static_cast<u32>(mh2o.attributes.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidAttributes), sizeof(u32)); // Write number of liquid attributes
 
                 if (numLiquidAttributes > 0)
                 {
@@ -317,8 +325,8 @@ namespace Adt
 
             // Liquid BitMask Data
             {
-                u16 numLiquidBitMaskBytes = static_cast<u16>(mh2o.bitMaskForPatchesData.size());
-                output.write(reinterpret_cast<char const*>(&numLiquidBitMaskBytes), sizeof(u16)); // Write number of liquid bitmap bytes
+                u32 numLiquidBitMaskBytes = static_cast<u32>(mh2o.bitMaskForPatchesData.size());
+                output.write(reinterpret_cast<char const*>(&numLiquidBitMaskBytes), sizeof(u32)); // Write number of liquid bitmap bytes
 
                 if (numLiquidBitMaskBytes > 0)
                 {
@@ -335,7 +343,7 @@ namespace Adt
                 {
                     output.write(reinterpret_cast<char const*>(mh2o.vertexData.data()), sizeof(u8) * numLiquidVertexDataBytes); // Write liquid vertex data bytes
                 }
-            }
+            }*/
         }
 
         // Serialize our StringTable and write it to the file

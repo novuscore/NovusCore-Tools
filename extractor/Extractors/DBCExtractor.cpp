@@ -313,6 +313,7 @@ bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::
 
     StringTable stringTable(rows);
     _liquidTypes.resize(rows);
+    _liquidTypeIDToIndex.reserve(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
@@ -334,6 +335,8 @@ bool DBCExtractor::LoadLiquidTypes(std::shared_ptr<GlobalData> globalData, std::
         liquidType.particleMovement = row.GetUInt32(12);
         liquidType.particleTextureSlots = row.GetUInt32(13);
         liquidType.liquidMaterialId = row.GetUInt32(14);
+
+        _liquidTypeIDToIndex[liquidType.id] = i;
     }
 
     return SaveDBCFile(globalData, 15, "LiquidTypes", _liquidTypes, stringTable);
@@ -346,6 +349,7 @@ bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, s
 
     StringTable stringTable;
     _liquidMaterials.resize(rows);
+    _liquidMaterialIDToIndex.reserve(rows);
 
     for (u32 i = 0; i < rows; i++)
     {
@@ -355,6 +359,8 @@ bool DBCExtractor::LoadLiquidMaterials(std::shared_ptr<GlobalData> globalData, s
         liquidMaterial.id = row.GetUInt32(0);
         liquidMaterial.liquidVertexFormat = row.GetUInt32(1);
         liquidMaterial.flags = row.GetUInt32(2);
+
+        _liquidMaterialIDToIndex[liquidMaterial.id] = i;
     }
 
     return SaveDBCFile(globalData, 3, "LiquidMaterials", _liquidMaterials, stringTable);
@@ -402,7 +408,7 @@ bool DBCExtractor::LoadCreatureModelData(std::shared_ptr<GlobalData> globalData,
         }
     }
 
-    return SaveDBCFile(globalData, 24, "CreatureModelData", _creatureModelDatas, stringTable);
+    return SaveDBCFile(globalData, 28, "CreatureModelData", _creatureModelDatas, stringTable);
 }
 bool DBCExtractor::LoadCreatureDisplayInfo(std::shared_ptr<GlobalData> globalData, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader)
 {

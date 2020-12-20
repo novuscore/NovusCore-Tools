@@ -219,6 +219,8 @@ namespace Adt
         std::vector<u8> bitMaskForPatchesData;
         std::vector<u8> vertexData;
 
+        std::vector<u8> waterData;
+
         static bool Read(std::shared_ptr<Bytebuffer>& buffer, const FileChunkHeader& header, const Wdt::Wdt& wdt, Adt& adt);
     };
 

@@ -149,7 +149,10 @@ namespace Adt
         u32 parentOffset = static_cast<u32>(buffer->readData);
         constexpr u32 Mh2oHeaderSize = (16 * 16) * sizeof(Mh2oData);
 
-        if (!FileChunkUtils::LoadArrayOfStructs(buffer, Mh2oHeaderSize, adt.mh2o.data))
+        adt.mh2o.waterData.resize(header.size);
+        std::memcpy(adt.mh2o.waterData.data(), buffer->GetReadPointer(), header.size);
+        buffer->readData += header.size;
+        /*if (!FileChunkUtils::LoadArrayOfStructs(buffer, Mh2oHeaderSize, adt.mh2o.data))
         {
             assert(false);
             return false;
@@ -247,6 +250,11 @@ namespace Adt
                         u32 vertexCount = (instance->width + 1) * (instance->height + 1);
                         u32 vertexDataBytes = 0;
 
+                        if (instance->liquidVertexFormat == 0 || instance->liquidVertexFormat == 1 || instance->liquidVertexFormat == 3)
+                        {
+                            volatile i32 test = 5;
+                        }
+
                         // If LiquidVertexFormat == 0
                         vertexDataBytes += (vertexCount * sizeof(LiquidVertexFormat_Height_Depth)) * (instance->liquidVertexFormat == 0);
 
@@ -271,7 +279,7 @@ namespace Adt
         }
 
         size_t extraDataSize = header.size - Mh2oHeaderSize;
-        buffer->readData += extraDataSize;
+        buffer->readData += extraDataSize;*/
         return true;
     }
 

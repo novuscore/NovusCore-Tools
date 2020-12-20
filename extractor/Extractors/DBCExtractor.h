@@ -33,6 +33,27 @@ public:
     const std::vector<NDBC::EmotesText>& GetEmotesTexts() { return _emotesTexts; }
     const std::vector<NDBC::Spell>& GetSpells() { return _spells; }
 
+    const bool GetLiquidTypeByID(u32 id, NDBC::LiquidType*& type)
+    {
+        auto& itr = _liquidTypeIDToIndex.find(id);
+
+        if (itr == _liquidTypeIDToIndex.end())
+            return false;
+
+        type = &_liquidTypes[itr->second];
+        return true;
+    }
+    const bool GetLiquidMaterialByID(u32 id, NDBC::LiquidMaterial*& type)
+    {
+        auto& itr = _liquidMaterialIDToIndex.find(id);
+
+        if (itr == _liquidMaterialIDToIndex.end())
+            return false;
+
+        type = &_liquidMaterials[itr->second];
+        return true;
+    }
+
     StringTable& GetStringTableFromNDBC(u32 nameHashWithoutExtension) { return _dbcNameToStringTable[nameHashWithoutExtension]; }
 private:
     bool LoadDBCFile(std::string_view path, std::shared_ptr<MPQLoader> mpqLoader, std::shared_ptr<DBCReader> dbcReader, u32& numRows);
@@ -120,6 +141,9 @@ private:
     std::vector<NDBC::CreatureDisplayInfo> _creatureDisplayInfos;
     std::vector<NDBC::EmotesText> _emotesTexts;
     std::vector<NDBC::Spell> _spells;
+
+    robin_hood::unordered_map<u32, u32> _liquidTypeIDToIndex;
+    robin_hood::unordered_map<u32, u32> _liquidMaterialIDToIndex;
 
     robin_hood::unordered_map<u32, StringTable> _dbcNameToStringTable;
 };
