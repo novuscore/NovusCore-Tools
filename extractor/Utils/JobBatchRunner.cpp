@@ -151,7 +151,7 @@ void JobBatchRunner::ProcessThreadMain(WorkerThread thread)
                 // This check ensures that if we failed to dequeue, that it was because another thread took the job.
                 if (batch._jobs.size_approx() != 0)
                 {
-                    NC_LOG_FATAL("JobBatchRunner::ProcessThreadMain: Failed to dequeue job from batch with remaining jobs waiting");
+                    DebugHandler::PrintFatal("JobBatchRunner::ProcessThreadMain: Failed to dequeue job from batch with remaining jobs waiting");
                 }
 
                 // It is possible to hit this, if the last job was dequeued by another thread at the same time.

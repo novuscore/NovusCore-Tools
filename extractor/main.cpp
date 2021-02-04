@@ -69,7 +69,7 @@ i32 main()
     // Load all MPQ Archives
     if (!mpqLoader->Load())
     {
-        NC_LOG_FATAL("Failed to load MPQ Files.");
+        DebugHandler::PrintFatal("Failed to load MPQ Files.");
         return 0;
     }
 
@@ -94,6 +94,6 @@ i32 main()
 
     mpqLoader->Close();
 
-    NC_LOG_SUCCESS("Dataextractor finished");
+    DebugHandler::PrintSuccess("Dataextractor finished");
     return 0;
 }

@@ -26,7 +26,7 @@ struct MapHeader
         std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
         if (!output)
         {
-            NC_LOG_ERROR("Failed to create map file. Check admin permissions");
+            DebugHandler::PrintError("Failed to create map file. Check admin permissions");
             return;
         }
 

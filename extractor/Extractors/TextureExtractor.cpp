@@ -23,7 +23,7 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
-    NC_LOG_SUCCESS("Fetching Textures");
+    DebugHandler::PrintSuccess("Fetching Textures");
 
     JobBatch textureJobBatch;
 
@@ -56,7 +56,7 @@ void TextureExtractor::ExtractTextures(std::shared_ptr<JobBatchRunner> jobBatchR
 
     });
 
-    NC_LOG_MESSAGE("Adding Textures batch of %u jobs", textureJobBatch.GetJobCount());
+    DebugHandler::Print("Adding Textures batch of %u jobs", textureJobBatch.GetJobCount());
 
     JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(textureJobBatch);
     mainBatchToken.WaitUntilFinished();

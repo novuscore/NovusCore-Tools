@@ -173,7 +173,7 @@ namespace Adt
                 u32 offsetIntoMWMO;
                 if (!mwidBuffer.Get<u32>(offsetIntoMWMO, modfData.nameId * sizeof(u32)))
                 {
-                    NC_LOG_FATAL("Could not get MWMO Offset from MWID");
+                    DebugHandler::PrintFatal("Could not get MWMO Offset from MWID");
                 }
 
                 std::string wmoName;
@@ -181,7 +181,7 @@ namespace Adt
 
                 if (wmoName.empty())
                 {
-                    NC_LOG_FATAL("Could not get WMO Name from MWMO");
+                    DebugHandler::PrintFatal("Could not get WMO Name from MWMO");
                 }
 
                 fs::path nmorPath = wmoName;
@@ -209,7 +209,7 @@ namespace Adt
                 u32 offsetIntoMMDX;
                 if (!mmidBuffer.Get<u32>(offsetIntoMMDX, mddfData.nameId * sizeof(u32)))
                 {
-                    NC_LOG_FATAL("Could not get MMDX Offset from MMID");
+                    DebugHandler::PrintFatal("Could not get MMDX Offset from MMID");
                 }
 
                 std::string m2Name;
@@ -217,7 +217,7 @@ namespace Adt
 
                 if (m2Name.empty())
                 {
-                    NC_LOG_FATAL("Could not get M2 Name from MMDX");
+                    DebugHandler::PrintFatal("Could not get M2 Name from MMDX");
                 }
 
                 fs::path cmodelPath = m2Name;
@@ -251,7 +251,7 @@ namespace Adt
         std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
         if (!output)
         {
-            NC_LOG_ERROR("Failed to create map file. Check admin permissions");
+            DebugHandler::PrintError("Failed to create map file. Check admin permissions");
             return;
         }
 

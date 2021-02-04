@@ -528,7 +528,7 @@ void ComplexModel::ConvertShaderIDs(ComplexRenderBatch& renderBatch)
             else
             {
                 // If the shaderId is (0x8000 or > 0x8003) we don't need to map anything
-                NC_LOG_FATAL("Model (%s) with TextureUnit(%u) where ShaderID(%u) could not be converted (1)", name, textureUnit.materialLayer, shaderId);
+                DebugHandler::PrintFatal("Model (%s) with TextureUnit(%u) where ShaderID(%u) could not be converted (1)", name, textureUnit.materialLayer, shaderId);
                 textureUnit.shaderId = std::numeric_limits<u16>().max();
             }
         }
@@ -536,7 +536,7 @@ void ComplexModel::ConvertShaderIDs(ComplexRenderBatch& renderBatch)
         {
             if (textureCount == 0)
             {
-                NC_LOG_FATAL("Model (%s) with TextureUnit(%u) where TextureCount is 0", name, textureUnit.materialLayer);
+                DebugHandler::PrintFatal("Model (%s) with TextureUnit(%u) where TextureCount is 0", name, textureUnit.materialLayer);
                 continue;
             }
 
@@ -693,7 +693,7 @@ void ComplexModel::ConvertShaderIDs(ComplexRenderBatch& renderBatch)
                     }
                     else
                     {
-                        NC_LOG_FATAL("Model (%s) with TextureUnit(%u) where ShaderID(t1PixelMode: %u, t2PixelMode: %u) could not be converted (2)", name, textureUnit.materialLayer, t1PixelMode, t2PixelMode);
+                        DebugHandler::PrintFatal("Model (%s) with TextureUnit(%u) where ShaderID(t1PixelMode: %u, t2PixelMode: %u) could not be converted (2)", name, textureUnit.materialLayer, t1PixelMode, t2PixelMode);
                         textureUnit.shaderId = std::numeric_limits<u16>().max();
                     }
                 }

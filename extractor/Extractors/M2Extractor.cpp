@@ -18,7 +18,7 @@ void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     if (m2Config["Extract"] == false)
         return;
 
-    NC_LOG_SUCCESS("Fetching M2s");
+    DebugHandler::PrintSuccess("Fetching M2s");
 
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
 
@@ -45,7 +45,7 @@ void M2Extractor::ExtractM2s(std::shared_ptr<JobBatchRunner> jobBatchRunner)
         });
     });
 
-    NC_LOG_MESSAGE("Adding M2 batch of %u jobs", m2JobBatch.GetJobCount());
+    DebugHandler::Print("Adding M2 batch of %u jobs", m2JobBatch.GetJobCount());
 
     JobBatchToken mainBatchToken = jobBatchRunner->AddBatch(m2JobBatch);
     mainBatchToken.WaitUntilFinished();

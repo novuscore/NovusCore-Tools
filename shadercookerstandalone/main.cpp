@@ -8,7 +8,7 @@ i32 main(int argc, char* argv[])
 {
     if (argc != 4)
     {
-        NC_LOG_ERROR("Expected three parameters, got %i. Usage: <shader_path> <shader_source_dir> <shader_bin_dir>", argc);
+        DebugHandler::PrintError("Expected three parameters, got %i. Usage: <shader_path> <shader_source_dir> <shader_bin_dir>", argc);
         return -1;
     }
 

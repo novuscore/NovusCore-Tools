@@ -29,7 +29,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     if (mapConfig["Extract"] == false)
         return;
 
-    NC_LOG_MESSAGE("Extracting ADTs...");
+    DebugHandler::Print("Extracting ADTs...");
 
     std::filesystem::path mapAlphaMapPath = globalData->texturePath / "ChunkAlphaMaps/Maps";
     std::filesystem::create_directories(mapAlphaMapPath);
@@ -189,7 +189,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     }
 
     size_t numMapJobCount = mapJobBatch.GetJobCount();
-    NC_LOG_MESSAGE("Adding Map batch of %u jobs", numMapJobCount);
+    DebugHandler::Print("Adding Map batch of %u jobs", numMapJobCount);
 
     if (numMapJobCount > 0)
     {
@@ -262,7 +262,7 @@ void MapExtractor::ExtractMaps(std::shared_ptr<JobBatchRunner> jobBatchRunner)
     }
 
     size_t numWMOJobCount = wmoJobBatch.GetJobCount();
-    NC_LOG_MESSAGE("Adding WMO batch of %u jobs", numWMOJobCount);
+    DebugHandler::Print("Adding WMO batch of %u jobs", numWMOJobCount);
 
     if (numWMOJobCount > 0)
     {

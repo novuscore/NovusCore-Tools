@@ -65,7 +65,7 @@ private:
         std::ofstream output(outputPath, std::ofstream::out | std::ofstream::binary);
         if (!output)
         {
-            NC_LOG_ERROR("Failed to create %s. Check admin permissions", name.string().c_str());
+            DebugHandler::PrintError("Failed to create %s. Check admin permissions", name.string().c_str());
             return false;
         }
 
@@ -92,7 +92,7 @@ private:
         std::shared_ptr<Bytebuffer> stringTableByteBuffer = Bytebuffer::Borrow<8388608>();
         if (!stringTable.Serialize(stringTableByteBuffer.get()))
         {
-            NC_LOG_ERROR("Failed to write StringTable for %s", name.string().c_str());
+            DebugHandler::PrintError("Failed to write StringTable for %s", name.string().c_str());
             return false;
         }
 

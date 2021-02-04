@@ -11,7 +11,7 @@
 
 void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 {
-    NC_LOG_SUCCESS("Fetching DBCs");
+    DebugHandler::PrintSuccess("Fetching DBCs");
 
     auto& globalData = ServiceLocator::GetGlobalData();
     std::shared_ptr<MPQLoader> mpqLoader = ServiceLocator::GetMPQLoader();
@@ -19,7 +19,7 @@ void DBCExtractor::ExtractDBCs(std::shared_ptr<JobBatchRunner> jobBatchRunner)
 
     if (!dbcReader)
     {
-        NC_LOG_ERROR("Failed to load dbc files. DBCReader is nullptr");
+        DebugHandler::PrintError("Failed to load dbc files. DBCReader is nullptr");
         return;
     }
 
@@ -43,11 +43,11 @@ bool DBCExtractor::LoadDBCFile(std::string_view path, std::shared_ptr<MPQLoader>
     std::shared_ptr<Bytebuffer> file = mpqLoader->GetFile(path);
     if (!file)
     {
-        NC_LOG_ERROR("Failed to load %s", path.data());
+        DebugHandler::PrintError("Failed to load %s", path.data());
         return false;
     }
 
-    NC_LOG_MESSAGE("Loading %s...", path.data());
+    DebugHandler::Print("Loading %s...", path.data());
 
     if (dbcReader->Load(file) != 0)
         return false;
