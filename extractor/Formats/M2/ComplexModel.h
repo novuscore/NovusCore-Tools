@@ -17,6 +17,9 @@ struct ComplexVertex
     hvec3 position = hvec3(f16(0), f16(0), f16(0));
     u8 octNormal[2] = { 0 };
     hvec2 uvCords[2] = { hvec2(f16(0), f16(0)), hvec2(f16(0), f16(0)) };
+
+    u8 boneIndices[4] = { 0, 0, 0, 0 };
+    u8 boneWeights[4] = { 0, 0, 0, 0 };
 };
 
 enum class ComplexTextureType : u32
@@ -68,6 +71,103 @@ struct ComplexMaterial
     u16 blendingMode; // Check https://wowdev.wiki/M2/Rendering#M2BLEND
 };
 
+enum class AnimationTrackInterpolationType : u8
+{
+    NONE,
+    LINEAR,
+    CUBIC_BEZIER_SPLINE, // Only used for M2SplineKey tracks (WowDev.Wiki states Bezier/Hermit might be in the wrong order)
+    CUBIC_HERMIT_SPLINE // Only used for M2SplineKey tracks (WowDev.Wiki states Bezier/Hermit might be in the wrong order)
+};
+
+template <typename T>
+struct ComplexAnimationTrack
+{
+    u32 sequenceId;
+    std::vector<u32> timestamps;
+    std::vector<T> values;
+};
+
+template <typename T>
+struct ComplexAnimationData
+{
+    ComplexAnimationData() { }
+
+    AnimationTrackInterpolationType interpolationType = AnimationTrackInterpolationType::NONE;
+    bool isGlobalSequence = false;
+
+    std::vector<ComplexAnimationTrack<T>> tracks;
+
+    void Serialize(std::ofstream& stream) const
+    {
+        stream.write(reinterpret_cast<char const*>(&interpolationType), sizeof(interpolationType));
+        stream.write(reinterpret_cast<char const*>(&isGlobalSequence), sizeof(isGlobalSequence));
+
+        u32 numTracks = static_cast<u32>(tracks.size());
+        {
+            stream.write(reinterpret_cast<char const*>(&numTracks), sizeof(numTracks));
+
+            for (u32 i = 0; i < numTracks; i++)
+            {
+                const ComplexAnimationTrack<T>& track = tracks[i];
+
+                stream.write(reinterpret_cast<char const*>(&track.sequenceId), sizeof(track.sequenceId));
+
+                u32 numTimestamps = static_cast<u32>(track.timestamps.size());
+                {
+                    stream.write(reinterpret_cast<char const*>(&numTimestamps), sizeof(numTimestamps));
+                    stream.write(reinterpret_cast<char const*>(track.timestamps.data()), numTimestamps * sizeof(u32));
+                }
+
+                u32 numValues = static_cast<u32>(track.values.size());
+                {
+                    stream.write(reinterpret_cast<char const*>(&numValues), sizeof(numValues));
+                    stream.write(reinterpret_cast<char const*>(track.values.data()), numTimestamps * sizeof(T));
+                }
+            }
+        }
+    }
+    bool Deserialize(Bytebuffer* buffer)
+    {
+        if (!buffer->Get(interpolationType))
+            return false;
+
+        if (!buffer->Get(isGlobalSequence))
+            return false;
+
+        u32 numTracks = 0;
+        {
+            if (!buffer->GetU32(numTracks))
+                return false;
+
+            tracks.resize(numTracks);
+
+            for (u32 i = 0; i < numTracks; i++)
+            {
+                ComplexAnimationTrack<T>& track = tracks[i];
+
+                if (!buffer->GetU32(track.sequenceId))
+                    return false;
+
+                u32 numTimestamps = 0;
+                if (!buffer->GetU32(numTimestamps))
+                    return false;
+
+                track.timestamps.resize(numTimestamps);
+                if (!buffer->GetBytes(reinterpret_cast<u8*>(track.timestamps.data()), numTimestamps * sizeof(u32)))
+                    return false;
+
+                u32 numValues = 0;
+                if (!buffer->GetU32(numValues))
+                    return false;
+
+                track.values.resize(numValues);
+                if (!buffer->GetBytes(reinterpret_cast<u8*>(track.values.data()), numValues * sizeof(T)))
+                    return false;
+            }
+        }
+    }
+};
+
 struct ComplexAnimationSequence
 {
     u16 id = 0; // Animation Id (AnimationData.ndbc)
@@ -84,275 +184,57 @@ struct ComplexAnimationSequence
     } flags;
 
     i16 frequency = 0; // Determines how often the animation is played.
-    uvec2 repetitionRange; // Unless the value is (0,0) pick a random number of repetitions to do based on (min, max)
+    uvec2 repetitionRange = uvec2(0, 0); // Unless the value is (0,0) pick a random number of repetitions to do based on (min, max)
     u16 blendTimeStart = 0;
     u16 blendTimeEnd = 0;
 
-    vec3 boundingBoxExtentmin;
-    vec3 boundingBoxExtentmax;
-    f32 radius;
+    vec3 extentsMin = vec3(0.0f, 0.0f, 0.0f);
+    vec3 extentsMax = vec3(0.0f, 0.0f, 0.0f);
+    f32 radius = 0;
 
-    i16 nextVariationId = 0; // Specifies the variation id for the next variation for this animation or (-1) for none.
+    i16 nextVariationId = -1; // Specifies the variation id for the next variation for this animation or (-1) for none.
     u16 nextAliasId = 0; // Specifies the id for the actual animation.
 };
 
-enum class AnimationTrackInterpolationType : u8
+struct ComplexBone
 {
-    NONE,
-    LINEAR,
-    CUBIC_BEZIER_SPLINE, // Only used for M2SplineKey tracks (WowDev.Wiki states Bezier/Hermit might be in the wrong order)
-    CUBIC_HERMIT_SPLINE // Only used for M2SplineKey tracks (WowDev.Wiki states Bezier/Hermit might be in the wrong order)
-};
+    i32 primaryBoneIndex = -1;
 
-template <typename T>
-struct ComplexAnimationTrack
-{
-    ComplexAnimationTrack() { }
-
-    AnimationTrackInterpolationType interpolationType;
-    std::vector<u16> sequencesInUse;
-
-    // Data is loaded from the sequence
-
-    /*
-        Timestamps & Values can store values for each sequence in the header of the model.
-        Thus you first index into "Timestamps & Values" with the sequence index and from
-        there you have the right vector that you can further index into or loop over.
-    */
-    std::vector<std::vector<u32>> timestamps;
-    std::vector<std::vector<T>> values;
-
-    void Serialize(Bytebuffer* buffer)
+    struct Flags
     {
-        buffer->Put(interpolationType);
+        u32 ignoreParentTranslate : 1;
+        u32 ignoreParentScale : 1;
+        u32 ignoreParentRotation : 1;
+        u32 sphericalBillboard : 1;
+        u32 cylindricalBillboard_LockX : 1;
+        u32 cylindricalBillboard_LockY : 1;
+        u32 cylindricalBillboard_LockZ : 1;
+        u32 unk_0x80 : 1;
+        u32 : 1;
+        u32 transformed : 1;
+        u32 kinematicBone : 1;
+        u32 : 1;
+        u32 helmetAnimationScale : 1;
+        u32 unk_0x1000 : 1;
+    } flags;
 
-        u32 numSequencesInUse = static_cast<u32>(sequencesInUse.size());
-        {
-            buffer->PutU32(numSequencesInUse);
+    i16 parentBoneId = -1;
+    u16 submeshId = 0;
 
-            if (numSequencesInUse > 0)
-            {
-                buffer->PutBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
-            }
-        }
+    ComplexAnimationData<vec3> translation;
+    ComplexAnimationData<vec4> rotation;
+    ComplexAnimationData<vec3> scale;
 
-        u32 numSequencesForTimestamps = static_cast<u32>(timestamps.size());
-        {
-            buffer->PutU32(numSequencesForTimestamps);
-
-            if (numSequencesForTimestamps > 0)
-            {
-                for (u32 i = 0; i < numSequencesForTimestamps; i++)
-                {
-                    u32 numTimestamps = static_cast<u32>(timestamps[i].size());
-                    buffer->PutU32(numTimestamps);
-
-                    if (numTimestamps > 0)
-                    {
-                        buffer->PutBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
-                    }
-                }
-            }
-        }
-
-        u32 numSequencesForValues = static_cast<u32>(values.size());
-        {
-            buffer->PutU32(numSequencesForValues);
-
-            if (numSequencesForValues > 0)
-            {
-                for (u32 i = 0; i < numSequencesForValues; i++)
-                {
-                    u32 numValues = static_cast<u32>(values[i].size());
-                    buffer->PutU32(numValues);
-
-                    if (numValues > 0)
-                    {
-                        buffer->PutBytes(&values[i][0], numValues * sizeof(T));
-                    }
-                }
-            }
-        }
-    }
-    void Serialize(DynamicBytebuffer* buffer)
-    {
-        buffer->Put(interpolationType);
-
-        u32 numSequencesInUse = static_cast<u32>(sequencesInUse.size());
-        {
-            buffer->PutU32(numSequencesInUse);
-
-            if (numSequencesInUse > 0)
-            {
-                buffer->PutBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
-            }
-        }
-
-        u32 numSequencesForTimestamps = static_cast<u32>(timestamps.size());
-        {
-            buffer->PutU32(numSequencesForTimestamps);
-
-            if (numSequencesForTimestamps > 0)
-            {
-                for (u32 i = 0; i < numSequencesForTimestamps; i++)
-                {
-                    u32 numTimestamps = static_cast<u32>(timestamps[i].size());
-                    buffer->PutU32(numTimestamps);
-
-                    if (numTimestamps > 0)
-                    {
-                        buffer->PutBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
-                    }
-                }
-            }
-        }
-
-        u32 numSequencesForValues = static_cast<u32>(values.size());
-        {
-            buffer->PutU32(numSequencesForValues);
-
-            if (numSequencesForValues > 0)
-            {
-                for (u32 i = 0; i < numSequencesForValues; i++)
-                {
-                    u32 numValues = static_cast<u32>(values[i].size());
-                    buffer->PutU32(numValues);
-
-                    if (numValues > 0)
-                    {
-                        buffer->PutBytes(&values[i][0], numValues * sizeof(T));
-                    }
-                }
-            }
-        }
-    }
-    void Deserialize(Bytebuffer* buffer)
-    {
-        buffer->Get(interpolationType);
-
-        u32 numSequencesInUse = 0;
-        {
-            buffer->GetU32(numSequencesInUse);
-
-            if (numSequencesInUse > 0)
-            {
-                sequencesInUse.resize(numSequencesInUse);
-                buffer->GetBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
-            }
-        }
-
-        u32 numSequencesForTimestamps = 0;
-        {
-            buffer->GetU32(numSequencesForTimestamps);
-
-            if (numSequencesForTimestamps > 0)
-            {
-                timestamps.resize(numSequencesForTimestamps);
-
-                for (u32 i = 0; i < numSequencesForTimestamps; i++)
-                {
-                    u32 numTimestamps = 0;
-                    buffer->GetU32(numTimestamps);
-
-                    if (numTimestamps > 0)
-                    {
-                        timestamps[i].resize(numTimestamps);
-                        buffer->GetBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
-                    }
-                }
-            }
-        }
-
-        u32 numSequencesForValues = 0;
-        {
-            buffer->GetU32(numSequencesForValues);
-
-            if (numSequencesForValues > 0)
-            {
-                values.resize(numSequencesForValues);
-
-                for (u32 i = 0; i < numSequencesForValues; i++)
-                {
-                    u32 numValues = 0;
-                    buffer->GetU32(numValues);
-
-                    if (numValues > 0)
-                    {
-                        values[i].resize(numValues);
-                        buffer->GetBytes(&values[i][0], numValues * sizeof(T));
-                    }
-                }
-            }
-        }
-    }
-    void Deserialize(DynamicBytebuffer* buffer)
-    {
-        buffer->Get(interpolationType);
-
-        u32 numSequencesInUse = 0;
-        {
-            buffer->GetU32(numSequencesInUse);
-
-            if (numSequencesInUse > 0)
-            {
-                sequencesInUse.resize(numSequencesInUse);
-                buffer->GetBytes(&sequencesInUse[0], numSequencesInUse * sizeof(u16));
-            }
-        }
-
-        u32 numSequencesForTimestamps = 0;
-        {
-            buffer->GetU32(numSequencesForTimestamps);
-
-            if (numSequencesForTimestamps > 0)
-            {
-                timestamps.resize(numSequencesForTimestamps);
-
-                for (u32 i = 0; i < numSequencesForTimestamps; i++)
-                {
-                    u32 numTimestamps = 0;
-                    buffer->GetU32(numTimestamps);
-
-                    if (numTimestamps > 0)
-                    {
-                        timestamps[i].resize(numTimestamps);
-                        buffer->GetBytes(&timestamps[i][0], numTimestamps * sizeof(u32));
-                    }
-                }
-            }
-        }
-
-        u32 numSequencesForValues = 0;
-        {
-            buffer->GetU32(numSequencesForValues);
-
-            if (numSequencesForValues > 0)
-            {
-                values.resize(numSequencesForValues);
-
-                for (u32 i = 0; i < numSequencesForValues; i++)
-                {
-                    u32 numValues = 0;
-                    buffer->GetU32(numValues);
-
-                    if (numValues > 0)
-                    {
-                        values[i].resize(numValues);
-                        buffer->GetBytes(&values[i][0], numValues * sizeof(T));
-                    }
-                }
-            }
-        }
-    }
+    vec3 pivot;
 };
 
 struct ComplexTextureTransform
 {
     // Check https://wowdev.wiki/M2#Texture_Transforms
 
-    ComplexAnimationTrack<vec3> position;
-    ComplexAnimationTrack<vec4> rotation;
-    ComplexAnimationTrack<vec3> scaling;
+    ComplexAnimationData<vec3> position;
+    ComplexAnimationData<vec4> rotation;
+    ComplexAnimationData<vec3> scaling;
 };
 
 // Check https://wowdev.wiki/M2/.skin#Texture_units
@@ -492,7 +374,8 @@ public:
 
     std::vector<u32> animationFileNameHashes;
 
-    std::vector<M2Vertex> m2Vertices;
+    std::vector<ComplexAnimationSequence> sequences;
+    std::vector<ComplexBone> bones;
 
     std::vector<ComplexVertex> vertices;
     std::vector<ComplexTexture> textures;
@@ -513,6 +396,36 @@ public:
     void SaveToDisk(const fs::path& filePath);
 
 private:
+
+    template <typename T>
+    void FillAnimationTrackFromM2Track(M2File& file, ComplexAnimationData<T>& animationData, M2Track<T>& m2Track)
+    {
+        u32 numTracks = m2Track.values.size;
+        
+        animationData.interpolationType = AnimationTrackInterpolationType::LINEAR;
+        animationData.isGlobalSequence = m2Track.globalSequence != -1;
+        animationData.tracks.reserve(numTracks);
+
+        for (u32 i = 0; i < numTracks; i++)
+        {
+            M2Array<u32>* m2Timestamps = m2Track.timestamps.GetElement(file.m2Buffer, i);
+            M2Array<T>* m2Values = m2Track.values.GetElement(file.m2Buffer, i);
+
+            if (m2Timestamps->size > 0 && m2Values->size > 0)
+            {
+                ComplexAnimationTrack<T>& track = animationData.tracks.emplace_back();
+
+                track.sequenceId = i;
+
+                track.timestamps.resize(m2Timestamps->size);
+                memcpy(track.timestamps.data(), m2Timestamps->Get(file.m2Buffer), sizeof(u32) * m2Timestamps->size);
+
+                track.values.resize(m2Values->size);
+                memcpy(track.values.data(), m2Values->Get(file.m2Buffer), sizeof(T) * m2Values->size);
+            }
+        }
+    }
+
     void FixData();
     void CalculateShaderID();
     void ResolveShaderID1(ComplexTextureUnit& textureUnit);
