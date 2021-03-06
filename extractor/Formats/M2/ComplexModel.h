@@ -402,7 +402,7 @@ private:
     {
         u32 numTracks = m2Track.values.size;
         
-        animationData.interpolationType = AnimationTrackInterpolationType::LINEAR;
+        animationData.interpolationType = static_cast<AnimationTrackInterpolationType>(m2Track.interpolationType);
         animationData.isGlobalSequence = m2Track.globalSequence != -1;
         animationData.tracks.reserve(numTracks);
 
