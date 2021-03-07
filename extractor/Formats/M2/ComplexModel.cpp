@@ -151,13 +151,14 @@ void ComplexModel::ReadFromM2(M2File& file)
                vertex.boneWeights[j] = m2Vertex->boneWeights[j];
             }
 
+            vec3 transformedPosition = vec3(-vertex.position.x, -vertex.position.y, vertex.position.z);
             for (u32 j = 0; j < 3; j++)
             {
-                if (vertex.position[j] < cullingData.minBoundingBox[j])
-                    cullingData.minBoundingBox[j] = vertex.position[j];
+                if (transformedPosition[j] < cullingData.minBoundingBox[j])
+                    cullingData.minBoundingBox[j] = transformedPosition[j];
 
-                if (vertex.position[j] > cullingData.maxBoundingBox[j])
-                    cullingData.maxBoundingBox[j] = vertex.position[j];
+                if (transformedPosition[j] > cullingData.maxBoundingBox[j])
+                    cullingData.maxBoundingBox[j] = transformedPosition[j];
             }
         }
 
