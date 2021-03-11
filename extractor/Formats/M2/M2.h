@@ -34,7 +34,7 @@ struct M2Array
 struct M2TrackBase
 {
     u16 interpolationType = 0;
-    u16 globalSequence = 0;
+    i16 globalSequence = 0;
 
     M2Array<M2Array<u32>> timestamps;
 };
@@ -354,7 +354,8 @@ struct M2CompBone
         u32 cylindricialBillboardLockX : 1;
         u32 cylindricialBillboardLockY : 1;
         u32 cylindricialBillboardLockZ : 1;
-        u32 : 2;
+        u32 unk_0x80 : 1;
+        u32 : 1;
         u32 transformed : 1;
         u32 kinematicBone : 1; // MOP+ Allow physics to influence this bone
         u32 : 1;
@@ -377,7 +378,7 @@ struct M2CompBone
     };
 
     M2Track<vec3> translation;
-    M2Track<M2CompQuat> rotation;
+    M2Track<M2CompQuat> rotation; // Compressed Values
     M2Track<vec3> scale;
 
     vec3 pivot = vec3(0, 0, 0); // The pivot point for the bone
@@ -500,7 +501,7 @@ struct M2Skin
 
     M2Array<u16> vertices;
     M2Array<u16> indices;
-    M2Array<u8vec4> bones;
+    M2Array<u8vec4> boneIndices;
     M2Array<M2SkinSelection> subMeshes;
     M2Array<M2Batch> batches;
     u32 boneCountMax;

@@ -16,41 +16,153 @@ void ComplexModel::ReadFromM2(M2File& file)
     name = m2.name.Get(file.m2Buffer);
     flags = *reinterpret_cast<ComplexModelFlag*>(&m2.flags);
 
+    // Read Sequences
+    {
+        u32 numSequences = m2.sequences.size;
+        u32 sequencesOffset = m2.sequences.offset;
+
+        size_t existingSequences = sequences.size();
+        sequences.resize(numSequences);
+        for (u32 i = 0; i < numSequences; i++)
+        {
+            M2Sequence* m2Sequence = m2.sequences.GetElement(file.m2Buffer, i);
+
+            ComplexAnimationSequence& sequence = sequences[existingSequences + i];
+            sequence.id = m2Sequence->id;
+            sequence.subId = m2Sequence->variationId;
+
+            sequence.duration = m2Sequence->duration;
+            sequence.moveSpeed = m2Sequence->moveSpeed;
+
+            sequence.flags.isAlwaysPlaying = false;
+            sequence.flags.isAlias = m2Sequence->flags.isAlias;
+            sequence.flags.blendTransition = m2Sequence->flags.blendTransition;
+
+            sequence.frequency = m2Sequence->frequency;
+            sequence.repetitionRange = uvec2(m2Sequence->repeatRange.minimum, m2Sequence->repeatRange.maximum);
+            sequence.blendTimeStart = m2Sequence->blendTime;
+            sequence.blendTimeEnd = m2Sequence->blendTime;
+
+            sequence.extentsMin = m2Sequence->bounds.extent.min;
+            sequence.extentsMax = m2Sequence->bounds.extent.max;
+            sequence.radius = m2Sequence->bounds.radius;
+
+            sequence.nextVariationId = m2Sequence->nextVariationId;
+            sequence.nextAliasId = m2Sequence->nextAliasId;
+        }
+    }
+
+    // Read Bones
+    {
+        u32 numBones = m2.bones.size;
+        u32 bonesOffset = m2.bones.offset;
+
+        bones.resize(numBones);
+        for (u32 i = 0; i < numBones; i++)
+        {
+            M2CompBone* m2Bone = m2.bones.GetElement(file.m2Buffer, i);
+
+            ComplexBone& bone = bones[i];
+            bone.primaryBoneIndex = m2Bone->keyBoneId;
+            
+            bone.flags.ignoreParentTranslate = m2Bone->flags.ignoreParentTranslate;
+            bone.flags.ignoreParentScale = m2Bone->flags.ignoreParentScale;
+            bone.flags.ignoreParentRotation = m2Bone->flags.ignoreParentRotation;
+            bone.flags.sphericalBillboard = m2Bone->flags.sphericalBillboard;
+            bone.flags.cylindricalBillboard_LockX = m2Bone->flags.cylindricialBillboardLockX;
+            bone.flags.cylindricalBillboard_LockY = m2Bone->flags.cylindricialBillboardLockY;
+            bone.flags.cylindricalBillboard_LockZ = m2Bone->flags.cylindricialBillboardLockZ;
+            bone.flags.unk_0x80 = m2Bone->flags.unk_0x80;
+            bone.flags.transformed = m2Bone->flags.transformed;
+            bone.flags.kinematicBone = m2Bone->flags.kinematicBone;
+            bone.flags.helmetAnimationScale = m2Bone->flags.helmetAnimScaled;
+            bone.flags.unk_0x1000 = m2Bone->flags.sequenceId;
+
+            bone.parentBoneId = m2Bone->parentBone;
+            bone.submeshId = m2Bone->submeshId;
+
+            // Read Translation Track
+            {
+                FillAnimationTrackFromM2Track(file, bone.translation, m2Bone->translation);
+            }
+
+            // Read Rotation Track
+            {
+                u32 numTracks = m2Bone->rotation.values.size;
+
+                bone.rotation.interpolationType = AnimationTrackInterpolationType::LINEAR;
+                bone.rotation.tracks.reserve(numTracks);
+
+                for (u32 i = 0; i < numTracks; i++)
+                {
+                    M2Array<u32>* m2Timestamps = m2Bone->rotation.timestamps.GetElement(file.m2Buffer, i);
+                    M2Array<M2CompQuat>* m2Values = m2Bone->rotation.values.GetElement(file.m2Buffer, i);
+
+                    if (m2Timestamps->size > 0 && m2Values->size > 0)
+                    {
+                        ComplexAnimationTrack<vec4>& track = bone.rotation.tracks.emplace_back();
+
+                        track.sequenceId = i;
+
+                        track.timestamps.resize(m2Timestamps->size);
+                        memcpy(track.timestamps.data(), m2Timestamps->Get(file.m2Buffer), sizeof(u32) * m2Timestamps->size);
+
+                        track.values.resize(m2Values->size);
+                        for (u32 j = 0; j < m2Values->size; j++)
+                        {
+                            track.values[j] = m2Values->GetElement(file.m2Buffer, j)->ToVec4();
+                        }
+                    }
+                }
+            }
+
+            // Read Scale Track
+            {
+                FillAnimationTrackFromM2Track(file, bone.scale, m2Bone->scale);
+            }
+
+            bone.pivot = m2Bone->pivot;
+        }
+    }
+
     // Read Vertices
     {
         u32 numVertices = m2.vertices.size;
-        u32 verticesOffset = m2.vertices.offset;
+        vertices.resize(numVertices);
 
-        m2Vertices.resize(numVertices);
-        memcpy(m2Vertices.data(), &file.m2Buffer->GetDataPointer()[verticesOffset], numVertices * sizeof(M2Vertex));
-
-        if (m2Vertices.size() > 0)
+        for (u32 i = 0; i < numVertices; i++)
         {
-            cullingData.boundingSphereRadius = m2.boundingSphereRadius;
+            M2Vertex* m2Vertex = m2.vertices.GetElement(file.m2Buffer, i);
 
-            for (M2Vertex& m2Vertex : m2Vertices)
+            ComplexVertex& vertex = vertices[i];
+            vertex.position = m2Vertex->position;
+
+            vertex.uvCords[0] = m2Vertex->uvCords[0];
+            vertex.uvCords[1] = m2Vertex->uvCords[1];
+
+            vec3 normal = glm::normalize(vec3(-m2Vertex->normal.x, -m2Vertex->normal.y, m2Vertex->normal.z));
+            vec2 octNormal = Utils::OctNormalEncode(normal);
+            vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
+            vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
+
+            for (u32 j = 0; j < 4; j++)
             {
-                ComplexVertex& vertex = vertices.emplace_back();
-                vertex.position = vec3(-m2Vertex.position.x, -m2Vertex.position.y, m2Vertex.position.z);
+               vertex.boneIndices[j] = m2Vertex->boneIndices[j];
+               vertex.boneWeights[j] = m2Vertex->boneWeights[j];
+            }
 
-                vertex.uvCords[0] = m2Vertex.uvCords[0];
-                vertex.uvCords[1] = m2Vertex.uvCords[1];
+            vec3 transformedPosition = vec3(-vertex.position.x, -vertex.position.y, vertex.position.z);
+            for (u32 j = 0; j < 3; j++)
+            {
+                if (transformedPosition[j] < cullingData.minBoundingBox[j])
+                    cullingData.minBoundingBox[j] = transformedPosition[j];
 
-                vec3 normal = glm::normalize(vec3(-m2Vertex.normal.x, -m2Vertex.normal.y, m2Vertex.normal.z));
-                vec2 octNormal = Utils::OctNormalEncode(normal);
-                vertex.octNormal[0] = static_cast<u8>(octNormal.x * 255.0f);
-                vertex.octNormal[1] = static_cast<u8>(octNormal.y * 255.0f);
-
-                for (u32 i = 0; i < 3; i++)
-                {
-                    if (vertex.position[i] < cullingData.minBoundingBox[i])
-                        cullingData.minBoundingBox[i] = vertex.position[i];
-
-                    if (vertex.position[i] > cullingData.maxBoundingBox[i])
-                        cullingData.maxBoundingBox[i] = vertex.position[i];
-                }
+                if (transformedPosition[j] > cullingData.maxBoundingBox[j])
+                    cullingData.maxBoundingBox[j] = transformedPosition[j];
             }
         }
+
+        cullingData.boundingSphereRadius = m2.boundingSphereRadius;
     }
 
     // Read Textures
@@ -715,11 +827,46 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
     }
 
     // Write Complex Model Header
-    output.write(reinterpret_cast<char const*>(&header), sizeof(header));
+    {
+        output.write(reinterpret_cast<char const*>(&header), sizeof(header));
+        output.write(reinterpret_cast<char const*>(&flags), sizeof(flags));
+    }
 
-    // Write Complex Model Flags
-    output.write(reinterpret_cast<char const*>(&flags), sizeof(flags));
+    // Write Sequences
+    {
+        u32 numElements = static_cast<u32>(sequences.size());
+        output.write(reinterpret_cast<char const*>(&numElements), sizeof(numElements));
 
+        if (numElements > 0)
+        {
+            output.write(reinterpret_cast<char const*>(&sequences[0]), numElements * sizeof(ComplexAnimationSequence));
+        }
+    }
+
+    // Write Bones
+    {
+        u32 numElements = static_cast<u32>(bones.size());
+        output.write(reinterpret_cast<char const*>(&numElements), sizeof(numElements));
+
+        if (numElements > 0)
+        {
+            for (const ComplexBone& bone : bones)
+            {
+                output.write(reinterpret_cast<char const*>(&bone.primaryBoneIndex), sizeof(bone.primaryBoneIndex));
+                output.write(reinterpret_cast<char const*>(&bone.flags), sizeof(bone.flags));
+
+                output.write(reinterpret_cast<char const*>(&bone.parentBoneId), sizeof(bone.parentBoneId));
+                output.write(reinterpret_cast<char const*>(&bone.submeshId), sizeof(bone.submeshId));
+
+                bone.translation.Serialize(output);
+                bone.rotation.Serialize(output);
+                bone.scale.Serialize(output);
+
+                output.write(reinterpret_cast<char const*>(&bone.pivot), sizeof(bone.pivot));
+            }
+        }
+    }
+    
     // Write Vertices
     {
         u32 numVertices = static_cast<u32>(vertices.size());
@@ -879,7 +1026,9 @@ void ComplexModel::SaveToDisk(const fs::path& filePath)
     }
 
     // Write CullingData
-    output.write(reinterpret_cast<char const*>(&cullingData), sizeof(CullingData));
+    {
+        output.write(reinterpret_cast<char const*>(&cullingData), sizeof(CullingData));
+    }
 
     output.close();
 }

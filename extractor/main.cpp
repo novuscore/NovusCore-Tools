@@ -14,6 +14,10 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+// Test
+#include "Formats/M2/M2.h"
+#include "Formats/M2/ComplexModel.h"
+
 #ifdef TRACY_ENABLE
 void* operator new(std::size_t count)
 {
@@ -81,6 +85,16 @@ i32 main()
         fs::create_directory(globalData->mapPath);
         fs::create_directory(globalData->cModelPath);
     }
+
+    // Test
+    /*{
+        M2File modelFile;
+        if (modelFile.GetFromMPQ("Creature\\Murloc\\Murloc.m2"))
+        {
+            ComplexModel complexModel;
+            complexModel.ReadFromM2(modelFile);
+        }
+    }*/
 
     // Start Job Batch Runner
     jobBatchRunner->Start();
