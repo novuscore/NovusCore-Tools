@@ -83,7 +83,15 @@ i32 main(int argc, char* argv[])
     }
 
     // Save our updated shader cache
-    shaderCache.Save(shaderCachePath);
+    u32 numFailedShaders = compiler.GetNumFailedShaders();
+    if (numFailedShaders == 0)
+    {
+        shaderCache.Save(shaderCachePath);
+    }
+    else
+    {
+        DebugHandler::PrintError("%u shaders failed to compile.", numFailedShaders);
+    }
 
     std::chrono::system_clock::time_point endTime = std::chrono::system_clock::now();
     std::chrono::duration<double> duration = endTime - startTime;
