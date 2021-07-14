@@ -36,6 +36,5 @@ set(ROOT_FOLDER ${PROJECT_NAME})
 set(ROOT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(dep)
-add_subdirectory(converter)
 add_subdirectory(shadercookerstandalone)
 add_subdirectory(extractor)
